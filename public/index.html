@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GL Intelligence · IND vs WI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">GL</span><div><b>Cricket GL Intelligence</b><small id="modelVersion"></small></div></div>
+  <div class="fixture">
+    <div class="teams"><span class="flag ind">IND</span> INDIA <em>vs</em> WEST INDIES <span class="flag wi">WI</span></div>
+    <div class="sub">1st ODI · 27 SEP 2026 · THIRUVANANTHAPURAM · D/N</div>
+  </div>
+  <div class="status" id="topStatus"></div>
+</header>
+<nav id="nav"></nav>
+<main id="view"></main>
+<div id="modal" class="modal hidden"><div class="modal-card"><button class="x" onclick="App.closeModal()">×</button><div id="modalBody"></div></div></div>
+<footer>Model projections are estimates, not guaranteed scores. Based on the available data, the recommended team is the model's highest-ranked GL construction under current assumptions — it will not necessarily win.</footer>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

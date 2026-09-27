@@ -1,0 +1,1576 @@
+{
+ "meta": {
+  "seedCollectedAt": "2026-09-27T13:45:00+05:30",
+  "note": "Every value below carries a source id. Values marked prior are model assumptions, not player statistics.",
+  "xiUpdatedAt": "2026-09-27T14:02:00+05:30"
+ },
+ "match": {
+  "id": "IND-WI-ODI1-2026",
+  "title": "India vs West Indies",
+  "matchNo": "1st ODI",
+  "series": "West Indies tour of India 2026-27",
+  "date": "2026-09-27",
+  "dateLabel": "27 SEP 2026",
+  "type": "ODI (Day/Night)",
+  "venue": "Greenfield International Stadium (Sports Hub), Thiruvananthapuram",
+  "city": "THIRUVANANTHAPURAM",
+  "start": "2026-09-27T14:00:00+05:30",
+  "tossTime": "2026-09-27T13:30:00+05:30",
+  "lat": 8.5745,
+  "lon": 76.8835,
+  "sources": [
+   "espn_preview",
+   "yahoo_preview",
+   "mykhel_toss"
+  ]
+ },
+ "sources": {
+  "espn_preview": {
+   "name": "ESPN / ESPNcricinfo match preview",
+   "tier": 2,
+   "reliability": 0.9,
+   "url": "https://www.espn.com/cricket/series/24289/preview/1529227/india-vs-west-indies-1st-odi-24289",
+   "fetchedAt": "2026-09-27T13:41:00+05:30"
+  },
+  "cricinfo_live": {
+   "name": "ESPNcricinfo live scorecard (blocked for automated fetch: HTTP 403)",
+   "tier": 2,
+   "reliability": 0.95,
+   "url": "https://www.espncricinfo.com/series/west-indies-in-india-2026-27-1529215/india-vs-west-indies-1st-odi-1529227/live-cricket-score",
+   "fetchedAt": null
+  },
+  "mykhel_toss": {
+   "name": "myKhel — toss result & Playing 11 (13:33 IST)",
+   "tier": 3,
+   "reliability": 0.7,
+   "url": "https://www.mykhel.com/cricket/india-vs-west-indies-toss-result-ind-vs-wi-1st-odi-who-won-toss-playing-11-thiruvananthapuram-match-454633.html",
+   "fetchedAt": "2026-09-27T13:41:00+05:30"
+  },
+  "indiacom_live": {
+   "name": "India.com live blog (toss + XIs)",
+   "tier": 3,
+   "reliability": 0.65,
+   "url": "https://www.india.com/sports/cricket/india-vs-west-indies-2026-live-score-1st-odi-match-27-sept-ind-vs-wi-squad-players-list-shubman-gill-shai-hope-rohit-sharma-virat-kohli-greenfields-international-stadium-thiruvananthapuram-8530506/",
+   "fetchedAt": "2026-09-27T13:38:00+05:30"
+  },
+  "outlook_live": {
+   "name": "Outlook India live blog (toss 13:32:41 IST)",
+   "tier": 3,
+   "reliability": 0.7,
+   "url": "https://www.outlookindia.com/sports/cricket/india-vs-west-indies-live-score-1st-odi-2026-updates-ind-v-wi-highlights-greenfield-international-stadium-thiruvananthapuram",
+   "fetchedAt": "2026-09-27T13:40:00+05:30"
+  },
+  "search_aggregate": {
+   "name": "Web-search aggregate snippet (unattributed)",
+   "tier": 4,
+   "reliability": 0.3,
+   "url": null,
+   "fetchedAt": "2026-09-27T13:37:00+05:30"
+  },
+  "yahoo_preview": {
+   "name": "Yahoo Sports match preview",
+   "tier": 3,
+   "reliability": 0.65,
+   "url": "https://sports.yahoo.com/articles/ind-vs-wi-1st-odi-060602918.html",
+   "fetchedAt": "2026-09-27T13:40:00+05:30"
+  },
+  "yahoo_pitch": {
+   "name": "Yahoo Sports — Greenfield pitch report & ODI records",
+   "tier": 3,
+   "reliability": 0.7,
+   "url": "https://sports.yahoo.com/articles/greenfield-stadium-thiruvananthapuram-pitch-report-233002453.html",
+   "fetchedAt": "2026-09-27T13:44:00+05:30"
+  },
+  "venue_search": {
+   "name": "Venue ODI history (search summary of Cricinfo / SportsRush / Wikipedia)",
+   "tier": 3,
+   "reliability": 0.7,
+   "url": "https://www.espncricinfo.com/cricket-grounds/greenfield-international-stadium-thiruvananthapuram-1120086/records",
+   "fetchedAt": "2026-09-27T13:43:00+05:30"
+  },
+  "squads_search": {
+   "name": "Squad announcements (Sunday Guardian / Wikipedia summary)",
+   "tier": 3,
+   "reliability": 0.75,
+   "url": "https://sundayguardianlive.com/sports/west-indies-announce-squads-for-india-tour-2026-kamil-pooran-gets-maiden-t20i-call-up-hetmyer-rested-check-full-odi-t20i-squads-288732/",
+   "fetchedAt": "2026-09-27T13:37:00+05:30"
+  },
+  "sg_live": {
+   "name": "Sunday Guardian live blog (12:38 IST squads)",
+   "tier": 3,
+   "reliability": 0.7,
+   "url": "https://sundayguardianlive.com/live-updates/sports/india-national-cricket-team-vs-west-indies-national-cricket-team-1st-odi-match-live-cricket-score-check-full-scorecard-and-all-live-updates-from-the-ind-vs-wi-1st-odi-jiohotstar-live-293771/",
+   "fetchedAt": "2026-09-27T13:47:00+05:30"
+  },
+  "my11_points": {
+   "name": "My11Circle official points system page",
+   "tier": 1,
+   "reliability": 0.95,
+   "url": "https://www.my11circle.com/points-system.html",
+   "fetchedAt": "2026-09-27T13:44:00+05:30"
+  },
+  "my11_rules_search": {
+   "name": "My11Circle rules (Republic World / search summary)",
+   "tier": 3,
+   "reliability": 0.5,
+   "url": "https://www.republicworld.com/tech/gaming/my11circle-points-system-heres-how-the-point-system-works-in-the-fantasy-app",
+   "fetchedAt": "2026-09-27T13:44:00+05:30"
+  },
+  "weather_news": {
+   "name": "Weather previews (Sportskeeda / LatestLY / FPJ summary)",
+   "tier": 3,
+   "reliability": 0.6,
+   "url": "https://www.sportskeeda.com/cricket/thiruvananthapuram-weather-report-september-27-what-chances-rain-ind-vs-wi-2026-1st-odi",
+   "fetchedAt": "2026-09-27T13:44:00+05:30"
+  },
+  "open_meteo": {
+   "name": "Open-Meteo hourly forecast (live API)",
+   "tier": 2,
+   "reliability": 0.8,
+   "url": "https://open-meteo.com/",
+   "fetchedAt": "live"
+  },
+  "model_prior": {
+   "name": "Model prior (generic ODI assumption — NOT a player statistic)",
+   "tier": 0,
+   "reliability": 0.4,
+   "url": null,
+   "fetchedAt": null
+  },
+  "user": {
+   "name": "User-confirmed input",
+   "tier": 1,
+   "reliability": 1.0,
+   "url": null,
+   "fetchedAt": "runtime"
+  },
+  "espn_scorecard": {
+   "name": "ESPN / ESPNcricinfo scorecard — Playing XI",
+   "tier": 2,
+   "reliability": 0.95,
+   "url": "https://www.espn.com/cricket/series/24289/scorecard/1529227/india-vs-west-indies-1st-odi-24289",
+   "fetchedAt": "2026-09-27T14:02:00+05:30"
+  },
+  "outlook_xi": {
+   "name": "Outlook India live blog — Playing XIs (13:39:27 IST)",
+   "tier": 3,
+   "reliability": 0.75,
+   "url": "https://www.outlookindia.com/sports/cricket/india-vs-west-indies-live-score-1st-odi-2026-updates-ind-v-wi-highlights-greenfield-international-stadium-thiruvananthapuram",
+   "fetchedAt": "2026-09-27T14:02:00+05:30"
+  },
+  "d11_official": {
+   "name": "Dream11 official points page (DOWN — HTTP 502 'Server down!' at 14:10 IST)",
+   "tier": 1,
+   "reliability": 0.95,
+   "url": "https://www.dream11.com/fantasy-cricket/point-system",
+   "fetchedAt": null
+  },
+  "d11_reports": {
+   "name": "Dream11 'new points system' reports (knowthegame / ddream11 / search summary)",
+   "tier": 3,
+   "reliability": 0.5,
+   "url": "https://ddream11.com/blog/dream11-points-system-guide-2026",
+   "fetchedAt": "2026-09-27T14:12:00+05:30"
+  },
+  "d11_legacy": {
+   "name": "CricJosh Dream11 ODI comparison table (Mar 2026)",
+   "tier": 3,
+   "reliability": 0.5,
+   "url": "https://cricjosh.in/blog/dream11-points-system-explained-2026",
+   "fetchedAt": "2026-09-27T14:12:00+05:30"
+  }
+ },
+ "toss": {
+  "winner": "IND",
+  "decision": "field",
+  "batFirst": "WI",
+  "reports": [
+   {
+    "source": "outlook_live",
+    "text": "India won the toss and elected to bowl first",
+    "timestamp": "2026-09-27T13:32:41+05:30"
+   },
+   {
+    "source": "mykhel_toss",
+    "text": "India captain Shubman Gill won the Toss and elected to Bowl first.",
+    "timestamp": "2026-09-27T13:33:00+05:30"
+   },
+   {
+    "source": "espn_preview",
+    "text": "Toss: India won and elected to field",
+    "timestamp": "2026-09-27T13:41:00+05:30"
+   },
+   {
+    "source": "indiacom_live",
+    "text": "India won the toss and elected to bowl first",
+    "timestamp": "2026-09-27T13:38:00+05:30"
+   }
+  ]
+ },
+ "xiReports": [
+  {
+   "source": "espn_scorecard",
+   "timestamp": "2026-09-27T14:02:00+05:30",
+   "IND": [
+    "rohit",
+    "gill",
+    "kohli",
+    "gaikwad",
+    "rahul",
+    "dhir",
+    "jadeja",
+    "nkr",
+    "brar",
+    "kuldeep",
+    "prasidh"
+   ],
+   "WI": [
+    "campbell",
+    "greaves",
+    "carty",
+    "hope",
+    "jangoo",
+    "andrew",
+    "chase",
+    "forde",
+    "motie",
+    "ajoseph",
+    "seales"
+   ]
+  },
+  {
+   "source": "outlook_xi",
+   "timestamp": "2026-09-27T13:39:27+05:30",
+   "IND": [
+    "rohit",
+    "gill",
+    "kohli",
+    "gaikwad",
+    "rahul",
+    "dhir",
+    "jadeja",
+    "nkr",
+    "brar",
+    "kuldeep",
+    "prasidh"
+   ],
+   "WI": [
+    "campbell",
+    "greaves",
+    "carty",
+    "hope",
+    "jangoo",
+    "andrew",
+    "chase",
+    "forde",
+    "motie",
+    "ajoseph",
+    "seales"
+   ]
+  },
+  {
+   "source": "indiacom_live",
+   "timestamp": "2026-09-27T13:38:00+05:30",
+   "IND": [
+    "rohit",
+    "gill",
+    "kohli",
+    "gaikwad",
+    "rahul",
+    "nkr",
+    "jadeja",
+    "nabi",
+    "kuldeep",
+    "siraj",
+    "prasidh"
+   ],
+   "WI": [
+    "campbell",
+    "hope",
+    "carty",
+    "rutherford",
+    "greaves",
+    "jangoo",
+    "forde",
+    "chase",
+    "motie",
+    "ajoseph",
+    "seales"
+   ],
+   "superseded": true
+  },
+  {
+   "source": "mykhel_toss",
+   "timestamp": "2026-09-27T13:33:00+05:30",
+   "IND": [
+    "rohit",
+    "gill",
+    "kohli",
+    "gaikwad",
+    "rahul",
+    "nkr",
+    "dhir",
+    "jadeja",
+    "kuldeep",
+    "prasidh",
+    "brar"
+   ],
+   "WI": [
+    "campbell",
+    "greaves",
+    "hope",
+    "carty",
+    "chase",
+    "rutherford",
+    "paul",
+    "motie",
+    "ajoseph",
+    "seales",
+    "shamar"
+   ],
+   "superseded": true
+  },
+  {
+   "source": "search_aggregate",
+   "timestamp": "2026-09-27T13:37:00+05:30",
+   "IND": [
+    "rohit",
+    "gill",
+    "kohli",
+    "gaikwad",
+    "rahul",
+    "nkr",
+    "jadeja",
+    "kuldeep",
+    "siraj",
+    "prasidh",
+    "brar"
+   ],
+   "WI": [
+    "campbell",
+    "hope",
+    "carty",
+    "rutherford",
+    "chase",
+    "greaves",
+    "forde",
+    "motie",
+    "ajoseph",
+    "seales",
+    "shamar"
+   ],
+   "superseded": true
+  }
+ ],
+ "xiNotes": [
+  {
+   "source": "espn_preview",
+   "text": "Sherfane Rutherford misses the opener due to personal reasons (preview, pre-toss).",
+   "players": [
+    "rutherford"
+   ],
+   "type": "availability"
+  },
+  {
+   "source": "espn_preview",
+   "text": "Captain Gill recovered from a recent elbow injury sustained during nets.",
+   "players": [
+    "gill"
+   ],
+   "type": "injury"
+  },
+  {
+   "source": "espn_preview",
+   "text": "India without Jasprit Bumrah and Hardik Pandya.",
+   "players": [],
+   "type": "availability"
+  },
+  {
+   "source": "outlook_xi",
+   "text": "Naman Dhir handed ODI debut cap (13:57 IST).",
+   "players": [
+    "dhir"
+   ],
+   "type": "debut"
+  }
+ ],
+ "players": [
+  {
+   "id": "rohit",
+   "name": "Rohit Sharma",
+   "team": "IND",
+   "role": "BAT",
+   "pos": 1,
+   "bowl": null
+  },
+  {
+   "id": "gill",
+   "name": "Shubman Gill",
+   "team": "IND",
+   "role": "BAT",
+   "pos": 2,
+   "bowl": null,
+   "captain": true
+  },
+  {
+   "id": "kohli",
+   "name": "Virat Kohli",
+   "team": "IND",
+   "role": "BAT",
+   "pos": 3,
+   "bowl": null
+  },
+  {
+   "id": "gaikwad",
+   "name": "Ruturaj Gaikwad",
+   "team": "IND",
+   "role": "BAT",
+   "pos": 4,
+   "bowl": null
+  },
+  {
+   "id": "rahul",
+   "name": "KL Rahul",
+   "team": "IND",
+   "role": "WK",
+   "pos": 5,
+   "bowl": null,
+   "wk": true
+  },
+  {
+   "id": "nkr",
+   "name": "Nitish Kumar Reddy",
+   "team": "IND",
+   "role": "AR",
+   "pos": 8,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm medium",
+    "quota": 8,
+    "pp": 0.6,
+    "mid": 1.0,
+    "death": 0.3
+   },
+   "posAlt": 7,
+   "posNote": "Lower-middle order (Nos. 6–8) differs between the ESPN and Outlook team sheets — modelled across both slots"
+  },
+  {
+   "id": "dhir",
+   "name": "Naman Dhir",
+   "team": "IND",
+   "role": "AR",
+   "pos": 6,
+   "bowl": {
+    "type": "spin",
+    "style": "Right-arm off-break",
+    "quota": 3,
+    "pp": 0.0,
+    "mid": 1.0,
+    "death": 0.0
+   },
+   "posAlt": 7,
+   "posNote": "Lower-middle order (Nos. 6–8) differs between the ESPN and Outlook team sheets — modelled across both slots"
+  },
+  {
+   "id": "jadeja",
+   "name": "Ravindra Jadeja",
+   "team": "IND",
+   "role": "AR",
+   "pos": 7,
+   "bowl": {
+    "type": "spin",
+    "style": "Slow left-arm orthodox",
+    "quota": 10,
+    "pp": 0.1,
+    "mid": 1.0,
+    "death": 0.3
+   },
+   "posAlt": 6,
+   "posNote": "Lower-middle order (Nos. 6–8) differs between the ESPN and Outlook team sheets — modelled across both slots"
+  },
+  {
+   "id": "kuldeep",
+   "name": "Kuldeep Yadav",
+   "team": "IND",
+   "role": "BOWL",
+   "pos": 9,
+   "bowl": {
+    "type": "spin",
+    "style": "Left-arm wrist-spin",
+    "quota": 10,
+    "pp": 0.0,
+    "mid": 1.0,
+    "death": 0.4
+   }
+  },
+  {
+   "id": "siraj",
+   "name": "Mohammed Siraj",
+   "team": "IND",
+   "role": "BOWL",
+   "pos": 10,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm fast",
+    "quota": 9,
+    "pp": 1.0,
+    "mid": 0.3,
+    "death": 0.8
+   }
+  },
+  {
+   "id": "prasidh",
+   "name": "Prasidh Krishna",
+   "team": "IND",
+   "role": "BOWL",
+   "pos": 11,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm fast",
+    "quota": 10,
+    "pp": 1.0,
+    "mid": 0.5,
+    "death": 0.9
+   }
+  },
+  {
+   "id": "brar",
+   "name": "Gurnoor Brar",
+   "team": "IND",
+   "role": "BOWL",
+   "pos": 10,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm fast-medium",
+    "quota": 9,
+    "pp": 0.9,
+    "mid": 0.6,
+    "death": 0.7
+   }
+  },
+  {
+   "id": "nabi",
+   "name": "Auqib Nabi",
+   "team": "IND",
+   "role": "BOWL",
+   "pos": 9,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm medium-fast",
+    "quota": 8,
+    "pp": 0.8,
+    "mid": 0.6,
+    "death": 0.4
+   }
+  },
+  {
+   "id": "jaiswal",
+   "name": "Yashasvi Jaiswal",
+   "team": "IND",
+   "role": "BAT",
+   "pos": 1,
+   "bowl": null
+  },
+  {
+   "id": "jurel",
+   "name": "Dhruv Jurel",
+   "team": "IND",
+   "role": "WK",
+   "pos": 6,
+   "bowl": null,
+   "wk": true
+  },
+  {
+   "id": "campbell",
+   "name": "John Campbell",
+   "team": "WI",
+   "role": "BAT",
+   "pos": 1,
+   "bowl": null
+  },
+  {
+   "id": "greaves",
+   "name": "Justin Greaves",
+   "team": "WI",
+   "role": "AR",
+   "pos": 2,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm medium",
+    "quota": 6,
+    "pp": 0.2,
+    "mid": 1.0,
+    "death": 0.3
+   }
+  },
+  {
+   "id": "hope",
+   "name": "Shai Hope",
+   "team": "WI",
+   "role": "WK",
+   "pos": 4,
+   "bowl": null,
+   "wk": true,
+   "captain": true
+  },
+  {
+   "id": "carty",
+   "name": "Keacy Carty",
+   "team": "WI",
+   "role": "BAT",
+   "pos": 3,
+   "bowl": null
+  },
+  {
+   "id": "rutherford",
+   "name": "Sherfane Rutherford",
+   "team": "WI",
+   "role": "BAT",
+   "pos": 5,
+   "bowl": null
+  },
+  {
+   "id": "jangoo",
+   "name": "Amir Jangoo",
+   "team": "WI",
+   "role": "WK",
+   "pos": 5,
+   "bowl": null
+  },
+  {
+   "id": "chase",
+   "name": "Roston Chase",
+   "team": "WI",
+   "role": "AR",
+   "pos": 7,
+   "bowl": {
+    "type": "spin",
+    "style": "Right-arm off-break",
+    "quota": 8,
+    "pp": 0.3,
+    "mid": 1.0,
+    "death": 0.2
+   }
+  },
+  {
+   "id": "forde",
+   "name": "Matthew Forde",
+   "team": "WI",
+   "role": "AR",
+   "pos": 8,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm fast-medium",
+    "quota": 9,
+    "pp": 0.7,
+    "mid": 0.6,
+    "death": 0.7
+   }
+  },
+  {
+   "id": "paul",
+   "name": "Keemo Paul",
+   "team": "WI",
+   "role": "AR",
+   "pos": 7,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm fast-medium",
+    "quota": 7,
+    "pp": 0.4,
+    "mid": 0.8,
+    "death": 0.8
+   }
+  },
+  {
+   "id": "motie",
+   "name": "Gudakesh Motie",
+   "team": "WI",
+   "role": "BOWL",
+   "pos": 9,
+   "bowl": {
+    "type": "spin",
+    "style": "Slow left-arm orthodox",
+    "quota": 10,
+    "pp": 0.2,
+    "mid": 1.0,
+    "death": 0.3
+   }
+  },
+  {
+   "id": "ajoseph",
+   "name": "Alzarri Joseph",
+   "team": "WI",
+   "role": "BOWL",
+   "pos": 10,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm fast",
+    "quota": 9,
+    "pp": 1.0,
+    "mid": 0.4,
+    "death": 1.0
+   }
+  },
+  {
+   "id": "seales",
+   "name": "Jayden Seales",
+   "team": "WI",
+   "role": "BOWL",
+   "pos": 11,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm fast-medium",
+    "quota": 9,
+    "pp": 1.0,
+    "mid": 0.4,
+    "death": 0.7
+   }
+  },
+  {
+   "id": "shamar",
+   "name": "Shamar Joseph",
+   "team": "WI",
+   "role": "BOWL",
+   "pos": 10,
+   "bowl": {
+    "type": "pace",
+    "style": "Right-arm fast",
+    "quota": 8,
+    "pp": 0.7,
+    "mid": 0.6,
+    "death": 0.7
+   }
+  },
+  {
+   "id": "andrew",
+   "name": "Jewel Andrew",
+   "team": "WI",
+   "role": "WK",
+   "pos": 6,
+   "bowl": null
+  },
+  {
+   "id": "lawes",
+   "name": "Vitel Lawes",
+   "team": "WI",
+   "role": "BOWL",
+   "pos": 10,
+   "bowl": {
+    "type": "pace",
+    "style": "DATA NOT AVAILABLE (assumed pace)",
+    "quota": 7,
+    "pp": 0.5,
+    "mid": 0.8,
+    "death": 0.5
+   }
+  }
+ ],
+ "roleSource": "My11Circle role labels and credits for this fixture were NOT retrievable. Roles above are the model's mapping from public squad designations — verify against the app and edit in Playing XI.",
+ "evidence": [
+  {
+   "player": "kohli",
+   "kind": "form",
+   "metric": "srRecent",
+   "value": 106.66,
+   "sample": 6,
+   "label": "ODI strike rate 106.66 across six 2026 matches (highest yearly SR since 2018)",
+   "source": "espn_preview"
+  },
+  {
+   "player": "kohli",
+   "kind": "matchup",
+   "metric": "avgVsOpp",
+   "value": 66.5,
+   "label": "ODI average 66.50 vs West Indies",
+   "source": "espn_preview"
+  },
+  {
+   "player": "kohli",
+   "kind": "milestone",
+   "metric": "note",
+   "value": 59,
+   "label": "59 runs short of 15,000 ODI runs",
+   "source": "espn_preview"
+  },
+  {
+   "player": "kohli",
+   "kind": "venue",
+   "metric": "venueRuns",
+   "value": 199,
+   "sample": 2,
+   "label": "Most ODI runs at venue: 199 in 2 matches; highest score 166* (110b) vs SL, Jan 2023",
+   "source": "yahoo_pitch"
+  },
+  {
+   "player": "siraj",
+   "kind": "venue",
+   "metric": "venueWkts",
+   "value": 4,
+   "sample": 1,
+   "label": "Best bowling at venue: 4/32 vs SL, Jan 2023",
+   "source": "yahoo_pitch"
+  },
+  {
+   "player": "jadeja",
+   "kind": "venue",
+   "metric": "venueWkts",
+   "value": 4,
+   "sample": 1,
+   "label": "4 wickets as WI were bowled out for 104, Nov 2018",
+   "source": "espn_preview"
+  },
+  {
+   "player": "gill",
+   "kind": "availability",
+   "metric": "note",
+   "value": null,
+   "label": "Recovered from elbow injury sustained in nets",
+   "source": "espn_preview"
+  },
+  {
+   "player": "rohit",
+   "kind": "venue",
+   "metric": "note",
+   "value": null,
+   "label": "Part of 99-run 2nd-wicket stand (78 balls) with Kohli in 2018 chase of 105",
+   "source": "venue_search"
+  }
+ ],
+ "teamForm": {
+  "IND": {
+   "last5": "LLWWW",
+   "source": "espn_preview"
+  },
+  "WI": {
+   "last5": "WLLLW",
+   "source": "espn_preview"
+  }
+ },
+ "venue": {
+  "name": "Greenfield International Stadium, Thiruvananthapuram",
+  "opened": "2015",
+  "odiMatches": [
+   {
+    "date": "2018-11-01",
+    "teams": "India v West Indies",
+    "batFirst": "WI",
+    "inn1": "WI 104 all out",
+    "inn1Runs": 104,
+    "inn1Wkts": 10,
+    "inn2": "IND 105/1 (14.5 ov)",
+    "inn2Runs": 105,
+    "inn2Wkts": 1,
+    "result": "India won by 9 wickets (chasing)",
+    "winnerBattedFirst": false,
+    "notes": "Low-scoring seam-bowling affair; Jadeja 4 wickets; Rohit–Kohli 99-run stand.",
+    "source": "venue_search",
+    "dayNight": "Day"
+   },
+   {
+    "date": "2023-01-15",
+    "teams": "India v Sri Lanka",
+    "batFirst": "IND",
+    "inn1": "IND 390/5",
+    "inn1Runs": 390,
+    "inn1Wkts": 5,
+    "inn2": "SL 73 all out",
+    "inn2Runs": 73,
+    "inn2Wkts": 10,
+    "result": "India won by 317 runs (batting first)",
+    "winnerBattedFirst": true,
+    "notes": "Kohli 166* (110b); Siraj 4/32.",
+    "source": "yahoo_pitch",
+    "dayNight": "Day/Night"
+   }
+  ],
+  "aggregate": {
+   "odiRuns": 671,
+   "odiWkts": 26,
+   "odiSR": 94.2,
+   "source": "venue_search"
+  },
+  "avgFirstInnings": {
+   "value": 247,
+   "source": "yahoo_pitch"
+  },
+  "parScore": {
+   "value": "280-300",
+   "source": "yahoo_pitch"
+  },
+  "seamerAvg": {
+   "value": 25.35,
+   "label": "Third-best seamer bowling average among Indian venues (limited ODI data)",
+   "source": "espn_preview"
+  },
+  "pitchText": [
+   {
+    "source": "yahoo_pitch",
+    "text": "True bounce and carry, a solid batting surface once players settle in. Early pace assistance with the new ball, particularly in overcast conditions; spinners feature during middle overs. Dew impacts evening play, favoring the chasing team."
+   },
+   {
+    "source": "espn_preview",
+    "text": "Third-best bowling average for seamers in India (25.35, limited ODI data). Spin proved decisive in 2018 when West Indies were bowled out for 104. No rain is forecast."
+   }
+  ],
+  "boundaries": {
+   "value": null,
+   "label": "DATA NOT AVAILABLE"
+  }
+ },
+ "weatherNews": [
+  {
+   "source": "weather_news",
+   "text": "Max 31°C / min 25°C; AccuWeather ~25% rain chance; scattered daytime thunderstorms possible (35%), clearer at night (10%). Hot and humid."
+  },
+  {
+   "source": "espn_preview",
+   "text": "No rain is forecast."
+  }
+ ],
+ "scoring": {
+  "version": "My11Circle ODI — New Point System effective 2025-04-17",
+  "source": "my11_points",
+  "fetchedAt": "2026-09-27T13:44:00+05:30",
+  "playingXI": 4,
+  "run": 1,
+  "four": 4,
+  "six": 6,
+  "milestones": [
+   [
+    25,
+    4
+   ],
+   [
+    50,
+    8
+   ],
+   [
+    75,
+    12
+   ],
+   [
+    100,
+    16
+   ],
+   [
+    125,
+    20
+   ],
+   [
+    150,
+    24
+   ]
+  ],
+  "milestoneMode": "highest",
+  "duck": -3,
+  "srMinRuns": 20,
+  "srMinBalls": 10,
+  "srBands": [
+   [
+    0,
+    30,
+    -6
+   ],
+   [
+    30,
+    40,
+    -4
+   ],
+   [
+    40,
+    50,
+    -2
+   ],
+   [
+    50,
+    100,
+    0
+   ],
+   [
+    100,
+    120,
+    2
+   ],
+   [
+    120,
+    140,
+    4
+   ],
+   [
+    140,
+    9999,
+    6
+   ]
+  ],
+  "dotsPerPoint": 3,
+  "dotPoint": 1,
+  "wicket": 30,
+  "lbwBowled": 8,
+  "maiden": 4,
+  "hauls": [
+   [
+    4,
+    4
+   ],
+   [
+    5,
+    8
+   ],
+   [
+    6,
+    12
+   ]
+  ],
+  "econMinOvers": 5,
+  "econBands": [
+   [
+    0,
+    2.5,
+    6
+   ],
+   [
+    2.5,
+    3.5,
+    4
+   ],
+   [
+    3.5,
+    4.5,
+    2
+   ],
+   [
+    4.5,
+    7,
+    0
+   ],
+   [
+    7,
+    8,
+    -2
+   ],
+   [
+    8,
+    9,
+    -4
+   ],
+   [
+    9,
+    99,
+    -6
+   ]
+  ],
+  "catch": 8,
+  "threeCatchBonus": 4,
+  "stumping": 12,
+  "runoutDirect": 12,
+  "runoutIndirect": 6,
+  "captain": 2,
+  "viceCaptain": 1.5,
+  "conflicts": [
+   {
+    "field": "playingXI",
+    "values": [
+     {
+      "value": 4,
+      "source": "my11_points"
+     },
+     {
+      "value": 2,
+      "source": "my11_rules_search"
+     }
+    ],
+    "resolved": 4,
+    "rule": "Tier-1 official page preferred"
+   },
+   {
+    "field": "milestoneMode",
+    "values": [
+     {
+      "value": "highest",
+      "source": "model_prior"
+     }
+    ],
+    "resolved": "highest",
+    "rule": "Official page lists bonuses but not whether they stack — UNVERIFIED; switch to 'cumulative' in Fantasy Points if the app shows stacking"
+   }
+  ],
+  "name": "My11Circle",
+  "haulMode": "highest",
+  "fieldStatus": {
+   "_all": "VERIFIED — official My11Circle points page (fetched 13:44 IST)"
+  }
+ },
+ "constraints": {
+  "players": 11,
+  "credits": 100,
+  "maxFromTeam": 10,
+  "roles": {
+   "WK": [
+    1,
+    4
+   ],
+   "BAT": [
+    3,
+    6
+   ],
+   "AR": [
+    1,
+    4
+   ],
+   "BOWL": [
+    3,
+    6
+   ]
+  },
+  "source": "my11_rules_search",
+  "note": "100 credits and max-10-per-team from search summary; role ranges are the common My11Circle ODI ranges — verify in-app."
+ },
+ "officialXI": {
+  "IND": [
+   "rohit",
+   "gill",
+   "kohli",
+   "gaikwad",
+   "rahul",
+   "dhir",
+   "jadeja",
+   "nkr",
+   "brar",
+   "kuldeep",
+   "prasidh"
+  ],
+  "WI": [
+   "campbell",
+   "greaves",
+   "carty",
+   "hope",
+   "jangoo",
+   "andrew",
+   "chase",
+   "forde",
+   "motie",
+   "ajoseph",
+   "seales"
+  ],
+  "sources": [
+   "espn_scorecard",
+   "outlook_xi"
+  ],
+  "timestamp": "2026-09-27T13:39:27+05:30",
+  "note": "ESPN scorecard and Outlook 13:39 IST Playing-XI update match exactly; Outlook 13:57 IST reports Naman Dhir's debut cap. Earlier conflicting reports (India.com, myKhel, search aggregate) are superseded."
+ },
+ "platforms": {
+  "dream11": {
+   "label": "Dream11",
+   "scoring": {
+    "name": "Dream11",
+    "version": "Dream11 ODI — PROVISIONAL (official page down: HTTP 502 at 14:10 IST)",
+    "source": "d11_reports",
+    "fetchedAt": "2026-09-27T14:12:00+05:30",
+    "playingXI": 4,
+    "run": 1,
+    "four": 4,
+    "six": 6,
+    "milestones": [
+     [
+      25,
+      4
+     ],
+     [
+      50,
+      8
+     ],
+     [
+      75,
+      12
+     ],
+     [
+      100,
+      16
+     ]
+    ],
+    "milestoneMode": "highest",
+    "duck": -3,
+    "srMinRuns": 9999,
+    "srMinBalls": 20,
+    "srBands": [
+     [
+      0,
+      30,
+      -6
+     ],
+     [
+      30,
+      40,
+      -4
+     ],
+     [
+      40,
+      50,
+      -2
+     ],
+     [
+      50,
+      100,
+      0
+     ],
+     [
+      100,
+      120,
+      2
+     ],
+     [
+      120,
+      140,
+      4
+     ],
+     [
+      140,
+      9999,
+      6
+     ]
+    ],
+    "dotsPerPoint": 0,
+    "dotPoint": 0,
+    "wicket": 25,
+    "lbwBowled": 8,
+    "maiden": 4,
+    "hauls": [
+     [
+      4,
+      4
+     ],
+     [
+      5,
+      8
+     ],
+     [
+      6,
+      12
+     ]
+    ],
+    "haulMode": "highest",
+    "econMinOvers": 5,
+    "econBands": [
+     [
+      0,
+      2.5,
+      4
+     ],
+     [
+      2.5,
+      3.5,
+      2
+     ],
+     [
+      3.5,
+      4.5,
+      1
+     ],
+     [
+      4.5,
+      7,
+      0
+     ],
+     [
+      7,
+      8,
+      -2
+     ],
+     [
+      8,
+      9,
+      -4
+     ],
+     [
+      9,
+      99,
+      -6
+     ]
+    ],
+    "catch": 8,
+    "threeCatchBonus": 4,
+    "stumping": 12,
+    "runoutDirect": 12,
+    "runoutIndirect": 6,
+    "captain": 2,
+    "viceCaptain": 1.5,
+    "fieldStatus": {
+     "run": "Reported by all sources",
+     "four": "+4 per 'new system' reports (knowthegame/ddream11); legacy ODI was +1 — CONFLICT",
+     "six": "+6 per 'new system' reports; legacy ODI was +2 — CONFLICT",
+     "milestones": "25-run bonus reported for new system; 75/100 values assumed — UNVERIFIED",
+     "duck": "-3 legacy ODI value (T20 is -2) — UNVERIFIED",
+     "dots": "No confirmed ODI dot-ball rule for Dream11 → set to 0 — UNVERIFIED",
+     "wicket": "25 (CricJosh ODI table, search summary) — consistent across sources",
+     "lbwBowled": "+8 — consistent across sources",
+     "maiden": "+4 ODI (CricJosh ODI table)",
+     "hauls": "4w +4 / 5w +8 legacy ODI — UNVERIFIED",
+     "econ": "Legacy ODI bands, min 5 overs — UNVERIFIED",
+     "sr": "Legacy ODI bands, min 20 balls — UNVERIFIED",
+     "fielding": "Catch 8 / stumping 12 / run-out 12·6 — consistent across sources",
+     "cvc": "C ×2, VC ×1.5 — consistent",
+     "playingXI": "+4 announced lineup — consistent"
+    },
+    "conflicts": [
+     {
+      "field": "four/six bonus",
+      "values": [
+       {
+        "value": "+4/+6",
+        "source": "d11_reports"
+       },
+       {
+        "value": "+1/+2",
+        "source": "d11_legacy"
+       }
+      ],
+      "resolved": "+4/+6",
+      "rule": "More recent 'new points system' reports preferred; official page unavailable"
+     },
+     {
+      "field": "wicket",
+      "values": [
+       {
+        "value": 25,
+        "source": "d11_legacy"
+       },
+       {
+        "value": 30,
+        "source": "d11_reports"
+       }
+      ],
+      "resolved": 25,
+      "rule": "ODI-specific table (CricJosh) says 25; the 30 figure appears in a generic (T20-oriented) guide"
+     }
+    ]
+   },
+   "constraints": {
+    "players": 11,
+    "credits": 100,
+    "maxFromTeam": 10,
+    "roles": {
+     "WK": [
+      1,
+      8
+     ],
+     "BAT": [
+      1,
+      8
+     ],
+     "AR": [
+      1,
+      8
+     ],
+     "BOWL": [
+      1,
+      8
+     ]
+    },
+    "note": "Dream11 standard: 100 credits, max 10 per side, 1–8 per role — verify in app"
+   }
+  },
+  "my11": {
+   "label": "My11Circle",
+   "scoring": {
+    "version": "My11Circle ODI — New Point System effective 2025-04-17",
+    "source": "my11_points",
+    "fetchedAt": "2026-09-27T13:44:00+05:30",
+    "playingXI": 4,
+    "run": 1,
+    "four": 4,
+    "six": 6,
+    "milestones": [
+     [
+      25,
+      4
+     ],
+     [
+      50,
+      8
+     ],
+     [
+      75,
+      12
+     ],
+     [
+      100,
+      16
+     ],
+     [
+      125,
+      20
+     ],
+     [
+      150,
+      24
+     ]
+    ],
+    "milestoneMode": "highest",
+    "duck": -3,
+    "srMinRuns": 20,
+    "srMinBalls": 10,
+    "srBands": [
+     [
+      0,
+      30,
+      -6
+     ],
+     [
+      30,
+      40,
+      -4
+     ],
+     [
+      40,
+      50,
+      -2
+     ],
+     [
+      50,
+      100,
+      0
+     ],
+     [
+      100,
+      120,
+      2
+     ],
+     [
+      120,
+      140,
+      4
+     ],
+     [
+      140,
+      9999,
+      6
+     ]
+    ],
+    "dotsPerPoint": 3,
+    "dotPoint": 1,
+    "wicket": 30,
+    "lbwBowled": 8,
+    "maiden": 4,
+    "hauls": [
+     [
+      4,
+      4
+     ],
+     [
+      5,
+      8
+     ],
+     [
+      6,
+      12
+     ]
+    ],
+    "econMinOvers": 5,
+    "econBands": [
+     [
+      0,
+      2.5,
+      6
+     ],
+     [
+      2.5,
+      3.5,
+      4
+     ],
+     [
+      3.5,
+      4.5,
+      2
+     ],
+     [
+      4.5,
+      7,
+      0
+     ],
+     [
+      7,
+      8,
+      -2
+     ],
+     [
+      8,
+      9,
+      -4
+     ],
+     [
+      9,
+      99,
+      -6
+     ]
+    ],
+    "catch": 8,
+    "threeCatchBonus": 4,
+    "stumping": 12,
+    "runoutDirect": 12,
+    "runoutIndirect": 6,
+    "captain": 2,
+    "viceCaptain": 1.5,
+    "conflicts": [
+     {
+      "field": "playingXI",
+      "values": [
+       {
+        "value": 4,
+        "source": "my11_points"
+       },
+       {
+        "value": 2,
+        "source": "my11_rules_search"
+       }
+      ],
+      "resolved": 4,
+      "rule": "Tier-1 official page preferred"
+     },
+     {
+      "field": "milestoneMode",
+      "values": [
+       {
+        "value": "highest",
+        "source": "model_prior"
+       }
+      ],
+      "resolved": "highest",
+      "rule": "Official page lists bonuses but not whether they stack — UNVERIFIED; switch to 'cumulative' in Fantasy Points if the app shows stacking"
+     }
+    ],
+    "name": "My11Circle",
+    "haulMode": "highest",
+    "fieldStatus": {
+     "_all": "VERIFIED — official My11Circle points page (fetched 13:44 IST)"
+    }
+   },
+   "constraints": {
+    "players": 11,
+    "credits": 100,
+    "maxFromTeam": 10,
+    "roles": {
+     "WK": [
+      1,
+      4
+     ],
+     "BAT": [
+      3,
+      6
+     ],
+     "AR": [
+      1,
+      4
+     ],
+     "BOWL": [
+      3,
+      6
+     ]
+    },
+    "source": "my11_rules_search",
+    "note": "100 credits and max-10-per-team from search summary; role ranges are the common My11Circle ODI ranges — verify in-app."
+   }
+  }
+ }
+}

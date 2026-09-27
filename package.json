@@ -1,0 +1,1 @@
+{ "name": "cricket-gl-engine", "version": "1.2.0", "private": true, "scripts": { "start": "node server.js" }, "engines": { "node": ">=18" } }
