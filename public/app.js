@@ -2,9 +2,9 @@
 // Tabs: Match Setup (screenshot upload → extract → research) · Dream11 Team · My11Circle Team.
 const App = (() => {
   const E = Engine;
-  const TABS = [['setup', 'Match Setup'], ['dream11', 'Dream11 Team'], ['my11', 'My11Circle Team']];
-  let seed, state, status, weather = null, tab = 'setup';
-  let shots = [], extracted = null, jobTimer = null, versions = [];
+  const TABS = [['dream11', 'Dream11 Team'], ['my11', 'My11Circle Team']];
+  let seed, state, status, weather = null, tab = 'dream11';
+  let shots = [], jobTimer = null, versions = [];
   const cache = {};
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -80,54 +80,44 @@ const App = (() => {
   }
 
   // ---------- rendering ----------
+  // One page: upload + Process on top, the match summary, then two team tabs (Dream11 / My11Circle).
   function render() {
-    $('#nav').innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? 'on' : ''}" onclick="App.go('${k}')">${l}</button>`).join('');
+    $('#nav').style.display = 'none';
     $('#modelVersion').textContent = E.MODEL_VERSION;
     const m = seed.match;
     $('.fixture').innerHTML = `<div class="teams">${esc(m.title.toUpperCase())}</div><div class="sub">${esc([m.matchNo, m.dateLabel || m.date, m.city, m.type].filter(Boolean).join(' · '))}</div>`;
-    $('#topStatus').innerHTML = `<span class="pill ${seed.toss?.winner ? 'ok' : 'warn'}">${esc(seed.toss?.winner ? `Toss: ${seed.toss.winner} ${seed.toss.decision}` : 'Toss pending')}</span><span class="pill ${seed.officialXI ? 'ok' : 'warn'}">XI: ${seed.officialXI ? 'announced' : 'probable'}</span><button class="btn" id="refreshBtn" onclick="App.refresh()" title="Fetch latest toss, Playing XI, pitch, venue and weather, then rebuild both teams">⟳ Refresh</button>`;
-    if (tab === 'setup') { $('#view').innerHTML = setupView(); bindSetup(); return; }
-    if (!cache[tab]) { $('#view').innerHTML = '<div class="card">Running 2,000 simulated matches and the GL optimiser…</div>'; setTimeout(() => { try { cache[tab] = run(tab); } catch (e) { cache[tab] = { error: e }; } render(); }, 30); return; }
-    if (cache[tab].error) { $('#view').innerHTML = `<div class="banner">Model error: ${esc(cache[tab].error.message)}</div>`; console.error(cache[tab].error); return; }
-    try { $('#view').innerHTML = view(cache[tab]); } catch (e) { $('#view').innerHTML = `<div class="banner">RENDER ERROR: ${esc(e.message)}</div>`; console.error(e); }
+    $('#topStatus').innerHTML = `<span class="pill ${seed.toss?.winner ? 'ok' : 'warn'}">${esc(seed.toss?.winner ? `Toss: ${seed.toss.winner} ${seed.toss.decision}` : 'Toss pending')}</span><span class="pill ${seed.officialXI ? 'ok' : 'warn'}">XI: ${seed.officialXI ? 'announced' : 'probable'}</span><button class="btn" id="refreshBtn" onclick="App.refresh()" ${job.running ? 'disabled' : ''} title="Fetch latest toss, Playing XI, pitch, venue and weather, then rebuild both teams">⟳ Refresh</button>`;
+    const tabsBar = `<div class="teamtabs" id="teams">${TABS.map(([k, l]) => `<button class="${k === tab ? 'on' : ''}" onclick="App.go('${k}')">${l}</button>`).join('')}</div>`;
+    let body;
+    if (!cache[tab]) { body = '<div class="card">Running 2,000 simulated matches and the GL optimiser…</div>'; setTimeout(() => { try { cache[tab] = run(tab); } catch (e) { cache[tab] = { error: e }; } render(); }, 30); }
+    else if (cache[tab].error) { body = `<div class="banner">Model error: ${esc(cache[tab].error.message)}</div>`; console.error(cache[tab].error); }
+    else { try { body = view(cache[tab]); } catch (e) { body = `<div class="banner">RENDER ERROR: ${esc(e.message)}</div>`; console.error(e); } }
+    $('#view').innerHTML = processView() + matchStrip() + tabsBar + body + historyCard();
+    bindSetup();
   }
 
-  // ---------- Match Setup ----------
-  function setupView() {
-    const m = seed.match, ex = extracted;
+  function processView() {
     const claudeOk = status?.claude;
-    const inputRow = (k, label, v, type = 'text') => `<label class="row small" style="justify-content:space-between;gap:8px">${label}<input style="flex:1;max-width:260px" data-in="${k}" type="${type}" value="${esc(v ?? '')}"></label>`;
-    return `
-    ${claudeOk ? '' : `<div class="banner"><b>Claude is not configured.</b> Screenshot reading and live data refresh use Claude (vision + web search). Stop the server and start it with <code>ANTHROPIC_API_KEY=sk-ant-… npm start</code>. Until then you can browse the saved match below.</div>`}
-    ${(seed.changes || []).length ? `<div class="banner ok"><b>Latest refresh changed:</b> ${seed.changes.map(esc).join(' · ')}</div>` : ''}
-    <div class="grid two">
-      <div class="card"><h3>1 · Upload match screenshot</h3>
-        <div id="drop" class="drop"><b>Drop screenshots here</b>, click to choose, or paste (Ctrl/⌘+V)<br><span class="small muted">Match page or Dream11 / My11Circle contest page, up to 5 images. Player lists with credits and "selected by %" are read too.</span>
+    return `${claudeOk ? '' : `<div class="banner"><b>Claude is not configured.</b> Processing an image needs Claude (vision + web search). Restart the server with <code>ANTHROPIC_API_KEY=sk-ant-… npm start</code>. The saved match below still works.</div>`}
+    <div class="card process"><h3>Upload match details</h3>
+      <div class="grid two" style="align-items:start">
+        <div><div id="drop" class="drop"><b>Drop the match screenshot here</b>, click to choose, or paste (Ctrl/⌘+V)<br><span class="small muted">A match page or Dream11 / My11Circle contest page. Up to 5 images; credits and "selected by %" are read if shown.</span>
           <input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden></div>
-        <div class="row" id="thumbs" style="margin-top:8px">${shots.map((s, i) => `<div class="thumb"><img src="data:${s.mediaType};base64,${s.data}"><button onclick="App.dropShot(${i})">×</button></div>`).join('')}</div>
-        <div class="row" style="margin-top:10px"><button class="btn" ${!shots.length || !claudeOk ? 'disabled' : ''} onclick="App.extract()">Read screenshot</button><button class="btn ghost" onclick="App.manual()">Enter details manually</button><span id="exStatus" class="small muted"></span></div>
-      </div>
-      <div class="card"><h3>2 · Confirm match details</h3>
-        ${ex ? `<div class="grid two" style="gap:6px">
-          ${inputRow('teamA', 'Team A', ex.teamA)}${inputRow('teamAShort', 'Team A code', ex.teamAShort)}
-          ${inputRow('teamB', 'Team B', ex.teamB)}${inputRow('teamBShort', 'Team B code', ex.teamBShort)}
-          <label class="row small" style="justify-content:space-between">Format<select data-in="format">${['ODI', 'T20', 'T10'].map(f => `<option ${ex.format === f ? 'selected' : ''}>${f}</option>`).join('')}</select></label>
-          ${inputRow('matchLabel', 'Match', ex.matchLabel)}${inputRow('series', 'Series', ex.series)}${inputRow('date', 'Date', ex.date)}
-          ${inputRow('startTime', 'Start time', ex.startTime)}${inputRow('venue', 'Venue', ex.venue)}${inputRow('city', 'City', ex.city)}
-          <label class="row small" style="justify-content:space-between">Screenshot from<select data-in="platform">${['dream11', 'my11circle', 'other', 'unknown'].map(f => `<option ${ex.platform === f ? 'selected' : ''}>${f}</option>`).join('')}</select></label></div>
-          ${ex.players?.length ? `<details style="margin-top:8px"><summary class="small">${ex.players.length} players read from screenshot (credits / selected-by)</summary><div class="scroll"><table><tr><th>Player</th><th>Team</th><th>Role</th><th class="n">Credits</th><th class="n">Sel %</th><th>Announced</th></tr>${ex.players.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.team)}</td><td>${esc(p.role)}</td><td class="n">${p.credits ?? '—'}</td><td class="n">${p.selectedByPercent ?? '—'}</td><td>${p.announced == null ? '—' : p.announced ? 'yes' : 'no'}</td></tr>`).join('')}</table></div></details>` : ''}
-          <div class="row" style="margin-top:10px"><button class="btn" ${claudeOk ? '' : 'disabled'} onclick="App.analyse()">3 · Fetch data &amp; build teams</button><span class="small muted">Claude searches the web for toss, Playing XI, pitch, venue history, form and weather (≈1–3 min).</span></div>`
-        : `<p class="small muted">Upload a screenshot (or enter details manually) to begin.</p>`}
-        <div id="jobBox"></div>
-      </div>
-    </div>
-    <div class="grid two" style="margin-top:14px">
-      <div class="card"><h3>Current match</h3><div class="kv"><span>Match</span><b>${esc(m.title)} · ${esc(m.matchNo || '')}</b><span>Format</span><span>${esc(m.type || m.format)}</span><span>Venue</span><span>${esc(m.venue)}</span><span>Toss</span><span>${esc(tossText())}</span><span>Playing XI</span><span>${seed.officialXI ? 'Announced' : 'Probable / not announced'}</span><span>Data collected</span><span>${when(seed.meta?.seedCollectedAt)}</span><span>Players</span><span>${seed.players.length}</span></div>
-        <div class="row" style="margin-top:10px"><button class="btn" onclick="App.go('dream11')">Dream11 Team →</button><button class="btn" onclick="App.go('my11')">My11Circle Team →</button>${status?.isDefault ? '' : '<button class="btn ghost" onclick="App.resetDefault()">Back to sample match</button>'}</div>
-        ${(seed.dataGaps || []).length ? `<p class="small"><b>Data gaps:</b> ${seed.dataGaps.map(esc).join(' · ')}</p>` : ''}${(seed.conflicts || []).length ? `<p class="small"><b>Conflicts:</b> ${seed.conflicts.map(esc).join(' · ')}</p>` : ''}</div>
-      <div class="card"><h3>Refresh history</h3>${versions.length ? `<table><tr><th>Collected</th><th>Toss</th><th>XI</th><th>Changes</th></tr>${versions.map(v => `<tr><td class="small">${when(v.at)}</td><td class="small">${esc(v.toss)}</td><td class="small">${esc(v.xi)}</td><td class="small">${esc(v.changes.join('; ') || '—')}</td></tr>`).join('')}</table>` : '<p class="small muted">No refreshes yet for this match.</p>'}
-        <p class="small muted">Every refresh is saved as a new version, and the teams are rebuilt from the newest data. Strategy: <a href="/docs/gl-strategy.md" target="_blank">GL strategy</a> · Points: <a href="/docs/points-systems.md" target="_blank">points systems</a></p></div>
-    </div>`;
+          <div class="row" id="thumbs" style="margin-top:8px">${shots.map((s, i) => `<div class="thumb"><img src="data:${s.mediaType};base64,${s.data}"><button onclick="event.stopPropagation();App.dropShot(${i})">×</button></div>`).join('')}</div></div>
+        <div><button class="btn big-btn" ${!shots.length || !claudeOk || job.running ? 'disabled' : ''} onclick="App.process()">▶ Process</button>
+          <ol class="small muted steps"><li>Read the image (teams, format, venue, date, credits)</li><li>Research toss, Playing XI, pitch report, venue history, player form and weather from cited sources</li><li>Apply the Dream11 and My11Circle points systems and the GL strategy, then build one team for each platform below</li></ol>
+          <div id="jobBox">${job.last || ''}</div></div>
+      </div></div>`;
+  }
+  function matchStrip() {
+    const m = seed.match;
+    return `${(seed.changes || []).length ? `<div class="banner ok"><b>Latest refresh changed:</b> ${seed.changes.map(esc).join(' · ')}</div>` : ''}
+    <div class="card" style="margin-top:14px"><div class="kv small"><span>Match</span><b>${esc(m.title)} · ${esc(m.matchNo || '')} · ${esc(m.type || m.format)}</b><span>Venue</span><span>${esc(m.venue)}</span><span>Toss</span><span>${esc(tossText())}</span><span>Playing XI</span><span>${seed.officialXI ? 'Announced' : 'Probable / not announced'}</span><span>Data collected</span><span>${when(seed.meta?.seedCollectedAt)}${status?.isDefault ? ' · <span class="muted">sample match — upload an image to analyse yours</span>' : ' · <a href="#" onclick="App.resetDefault();return false">back to sample match</a>'}</span></div>
+      ${(seed.dataGaps || []).length ? `<p class="small"><b>Data gaps:</b> ${seed.dataGaps.map(esc).join(' · ')}</p>` : ''}${(seed.conflicts || []).length ? `<p class="small"><b>Conflicts:</b> ${seed.conflicts.map(esc).join(' · ')}</p>` : ''}</div>`;
+  }
+  function historyCard() {
+    return `<details class="card" style="margin-top:14px"><summary><b>Refresh history</b> <span class="small muted">(${versions.length} version${versions.length === 1 ? '' : 's'})</span></summary>${versions.length ? `<table><tr><th>Collected</th><th>Toss</th><th>XI</th><th>Changes</th></tr>${versions.map(v => `<tr><td class="small">${when(v.at)}</td><td class="small">${esc(v.toss)}</td><td class="small">${esc(v.xi)}</td><td class="small">${esc(v.changes.join('; ') || '—')}</td></tr>`).join('')}</table>` : '<p class="small muted">No refreshes yet.</p>'}
+      <p class="small muted">Rules applied: <a href="/docs/gl-strategy.md" target="_blank">GL strategy</a> · <a href="/docs/points-systems.md" target="_blank">points systems</a></p></details>`;
   }
   function bindSetup() {
     const drop = $('#drop'), file = $('#file');
@@ -137,7 +127,6 @@ const App = (() => {
     drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
     drop.ondragleave = () => drop.classList.remove('over');
     drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); };
-    if (job.running) pollJob();
   }
   async function addFiles(list) {
     for (const f of [...list].slice(0, 5 - shots.length)) {
@@ -160,20 +149,22 @@ const App = (() => {
       img.src = url;
     });
   }
-  document.addEventListener('paste', e => { if (tab !== 'setup') return; const files = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith('image/')).map(i => i.getAsFile()); if (files.length) addFiles(files); });
+  document.addEventListener('paste', e => { const files = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith('image/')).map(i => i.getAsFile()); if (files.length) addFiles(files); });
 
   const job = { running: false };
   function pollJob(onDone) {
     job.running = true; clearInterval(jobTimer);
-    const box = () => $('#jobBox') || $('#refreshBox');
+    const box = () => $('#jobBox');
     jobTimer = setInterval(async () => {
       const j = await api('/api/job').catch(() => null); if (!j) return;
       const el = box();
-      if (el) el.innerHTML = `<div class="joblog"><b>${j.state === 'running' ? '⏳ Working…' : j.state === 'done' ? '✓ Done' : j.state === 'error' ? '✗ Failed' : ''}</b> <span class="small muted">${j.startedAt ? Math.round((Date.now() - new Date(j.startedAt)) / 1000) + 's' : ''}</span>${j.log.slice(-12).map(l => `<div class="small mono">${esc(l.msg)}</div>`).join('')}</div>`;
+      const html = `<div class="joblog"><b>${j.state === 'running' ? '⏳ Working…' : j.state === 'done' ? '✓ Done' : j.state === 'error' ? '✗ Failed' : ''}</b> <span class="small muted">${j.startedAt ? Math.round((Date.now() - new Date(j.startedAt)) / 1000) + 's' : ''}</span>${j.log.slice(-12).map(l => `<div class="small mono">${esc(l.msg)}</div>`).join('')}</div>`;
+      job.last = html; if (el) el.innerHTML = html;
       if (j.state !== 'running') {
         clearInterval(jobTimer); job.running = false;
         const btn = $('#refreshBtn'); if (btn) btn.disabled = false;
-        if (j.state === 'done') { await loadAll(); tab = tab === 'setup' && !onDone ? 'dream11' : tab; if (onDone) onDone(); render(); }
+        if (j.state === 'done') { await loadAll(); shots = []; render(); document.getElementById('teams')?.scrollIntoView({ behavior: 'smooth' }); }
+        else render();
       }
     }, 1500);
   }
@@ -311,44 +302,33 @@ const App = (() => {
       <h3 style="margin-top:10px">Evidence & derivation</h3><ul class="small">${p.evidence.map(e => `<li>${esc(e.label)} — ${link(e.source)}</li>`).join('')}${p.batTrail.concat(p.bowlTrail || []).map(t => `<li class="muted">${esc(t)}</li>`).join('')}${p.posNote ? `<li class="muted">${esc(p.posNote)}</li>` : ''}</ul><p class="small"><b>Risk:</b> ${esc(riskList(R, j).join('; ') || 'standard')}</p></div>`;
   }
 
-  const collectInput = () => { const o = { ...extracted }; document.querySelectorAll('[data-in]').forEach(el => { o[el.dataset.in] = el.value || null; }); return o; };
 
   return {
     async init() {
       const h = location.hash.slice(1); if (TABS.some(([k]) => k === h)) tab = h;
       await loadAll();
       const j = await api('/api/job').catch(() => null);
-      render();
       if (j?.state === 'running') pollJob();
-      setInterval(async () => { weather = await api('/api/weather').catch(() => weather); for (const k in cache) delete cache[k]; if (tab !== 'setup') render(); }, 15 * 60 * 1000);
+      render();
+      setInterval(async () => { weather = await api('/api/weather').catch(() => weather); for (const k in cache) delete cache[k]; if (!job.running) render(); }, 15 * 60 * 1000);
     },
-    go(k) { tab = k; history.replaceState(null, '', '#' + k); render(); window.scrollTo(0, 0); },
+    go(k) { tab = k; history.replaceState(null, '', '#' + k); render(); document.getElementById('teams')?.scrollIntoView(); },
     player(id) { $('#modalBody').innerHTML = playerDetail(id); $('#modal').classList.remove('hidden'); },
     closeModal() { $('#modal').classList.add('hidden'); },
     dropShot(i) { shots.splice(i, 1); render(); },
-    manual() { const m = seed.match.matchInput || {}; extracted = { platform: 'unknown', teamA: '', teamB: '', teamAShort: '', teamBShort: '', format: 'T20', matchLabel: '', series: '', date: '', startTime: '', venue: '', city: '', players: [], ...(status.isDefault ? {} : m) }; render(); },
-    async extract() {
-      $('#exStatus').textContent = 'Reading screenshot with Claude…';
-      const r = await api('/api/extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images: shots }) }).catch(e => ({ ok: false, message: e.message }));
-      if (!r.ok) { $('#exStatus').textContent = r.message || 'Extraction failed'; return; }
-      extracted = r.data; render();
-    },
-    async analyse() {
-      const input = collectInput();
-      if (!input.teamA || !input.teamB) { alert('Enter both team names.'); return; }
-      const r = await api('/api/analyse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ input }) });
-      if (!r.ok) { alert(r.message || 'A research job is already running.'); return; }
-      pollJob();
+    async process() {
+      if (!shots.length) return;
+      const r = await api('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images: shots }) }).catch(e => ({ ok: false, message: e.message }));
+      if (!r.ok) { alert(r.message || 'A job is already running.'); return; }
+      job.last = ''; pollJob(); render();
     },
     async refresh() {
       if (!status.claude) { alert('Refresh needs Claude. Start the server with ANTHROPIC_API_KEY=… npm start'); return; }
       const r = await api('/api/refresh', { method: 'POST' });
       if (!r.ok) { alert(r.message || 'A refresh is already running.'); return; }
-      $('#refreshBtn').disabled = true;
-      $('#view').insertAdjacentHTML('afterbegin', '<div class="card" id="refreshBox" style="margin-bottom:14px"></div>');
-      pollJob(() => {});
+      job.last = ''; pollJob(); render(); window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    async resetDefault() { await api('/api/reset-default', { method: 'POST' }); extracted = null; await loadAll(); render(); },
+    async resetDefault() { await api('/api/reset-default', { method: 'POST' }); await loadAll(); render(); },
     async saveInputs() {
       const cr = {}, ro = {};
       document.querySelectorAll('[data-cr]').forEach(el => { if (el.value !== '') cr[el.dataset.cr] = +el.value; });

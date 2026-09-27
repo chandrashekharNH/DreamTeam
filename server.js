@@ -50,15 +50,25 @@ async function weather() {
 
 // ---------- research job (one at a time) ----------
 let job = { state: 'idle', log: [], startedAt: null, finishedAt: null, error: null, kind: null };
-function startJob(kind, input) {
+function startJob(kind, input, images) {
   if (job.state === 'running') return false;
-  job = { state: 'running', log: [], startedAt: new Date().toISOString(), finishedAt: null, error: null, kind };
+  job = { state: 'running', log: [], startedAt: new Date().toISOString(), finishedAt: null, error: null, kind, step: 1 };
   const log = t => job.log.push({ t: new Date().toISOString(), msg: t });
   (async () => {
     try {
-      log(kind === 'refresh' ? 'Refreshing latest toss, Playing XI, pitch and venue data…' : 'Researching match with Claude + web search…');
+      if (images) {
+        log('Step 1/3 · Reading the uploaded image…');
+        input = await claude.extractMatch(images);
+        input._uploadedAt = new Date().toISOString();
+        writeJSON(path.join(DATA, 'last-extract.json'), input);
+        if (!input.teamA || !input.teamB) throw new Error('Could not find both team names in the image. Upload a clearer match screenshot.');
+        log(`Found: ${input.teamA} vs ${input.teamB} · ${input.format} · ${input.matchLabel || ''} · ${input.venue || 'venue not shown'}${input.players?.length ? ` · ${input.players.length} players with credits` : ''}`);
+      }
+      job.step = 2;
+      log(kind === 'refresh' ? 'Refreshing latest toss, Playing XI, pitch and venue data…' : 'Step 2/3 · Researching toss, Playing XI, pitch, venue, form and weather…');
       const research = await claude.research(input, log);
-      log('Building the model inputs…');
+      job.step = 3;
+      log('Step 3/3 · Applying points systems and GL strategy…');
       const seed = adapter.build(research, input);
       seed.match.matchInput = input;
       const prev = readJSON(CURRENT);
@@ -72,7 +82,9 @@ function startJob(kind, input) {
       log(`Done — ${seed.players.length} players, toss: ${seed.toss.winner ? seed.toss.winner + ' ' + seed.toss.decision : 'pending'}, XI: ${seed.officialXI ? 'announced' : 'probable'}.`);
       job.state = 'done';
     } catch (e) {
-      job.state = 'error'; job.error = String(e.message || e); log('Error: ' + job.error);
+      job.state = 'error';
+      job.error = e.status === 401 ? 'Anthropic API key is invalid — check ANTHROPIC_API_KEY.' : e.status === 429 ? 'Rate limited by the Anthropic API — wait a minute and retry.' : String(e.message || e);
+      log('Error: ' + job.error);
     } finally { job.finishedAt = new Date().toISOString(); }
   })();
   return true;
@@ -131,6 +143,13 @@ http.createServer(async (req, res) => {
       data._uploadedAt = new Date().toISOString();
       writeJSON(path.join(DATA, 'last-extract.json'), data);
       return send(res, 200, { ok: true, data });
+    }
+    if (url.pathname === '/api/process' && req.method === 'POST') {
+      if (!claude.configured()) return send(res, 200, NEED_KEY);
+      const { images } = await body(req);
+      if (!Array.isArray(images) || !images.length || images.length > 5) return send(res, 400, { ok: false, message: 'Upload 1–5 images.' });
+      if (images.some(i => !/^image\/(png|jpeg|webp|gif)$/.test(i.mediaType))) return send(res, 400, { ok: false, message: 'Images must be PNG, JPEG, WEBP or GIF.' });
+      return send(res, 200, { ok: startJob('process', null, images), job });
     }
     if (url.pathname === '/api/analyse' && req.method === 'POST') {
       if (!claude.configured()) return send(res, 200, NEED_KEY);

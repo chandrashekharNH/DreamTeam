@@ -98,3 +98,9 @@ pre.box { background: var(--panel2); border: 1px solid var(--line); padding: 12p
 .joblog { margin-top: 12px; padding: 10px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); max-height: 260px; overflow: auto; }
 button.btn:disabled { opacity: .45; cursor: not-allowed; }
 #refreshBtn { padding: 5px 12px; }
+.teamtabs { display: flex; gap: 6px; margin: 18px 0 12px; border-bottom: 1px solid var(--line); }
+.teamtabs button { background: none; border: 0; color: var(--muted); font: inherit; font-weight: 700; font-size: 15px; padding: 10px 18px; cursor: pointer; border-radius: 10px 10px 0 0; }
+.teamtabs button.on { color: var(--text); background: var(--panel); box-shadow: inset 0 -3px 0 var(--accent); }
+.big-btn { font-size: 18px; padding: 14px 28px; width: 100%; }
+.steps { margin: 12px 0 0; padding-left: 18px; }
+.steps li { margin: 3px 0; }

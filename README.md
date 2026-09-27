@@ -11,9 +11,9 @@ npm test                                   # offline pipeline tests
 Without an API key the app still opens with the saved sample match (India vs West Indies, 1st ODI), but screenshot reading and Refresh are disabled.
 
 ## Flow
-1. **Match Setup** — drop, choose or paste 1–5 screenshots (match page or Dream11/My11Circle contest page). Claude vision extracts the teams, format, venue and date, plus any credits and "selected by %" shown.
-2. Confirm or edit the details, then **Fetch data & build teams**. Claude (`claude-opus-5`, web search + web fetch) collects cited facts, which are converted into strict JSON (`lib/claude.js`) and then the model format (`lib/adapter.js`).
-3. **Dream11 Team** / **My11Circle Team** tabs: 2,000 ball-by-ball simulations → per-player floor/median/P90/P95 → GL optimiser → C/VC leverage → validation.
+1. **Upload + Process** — drop, choose or paste 1–5 screenshots and press **▶ Process**. Everything else is automatic: Claude vision reads the teams, format, venue, date, credits and "selected by %".
+2. The app then researches the match: Claude (`claude-opus-5`, web search + web fetch) collects cited facts, which are converted into strict JSON (`lib/claude.js`) and then the model format (`lib/adapter.js`).
+3. Results appear below in two tabs, **Dream11 Team** and **My11Circle Team**: 2,000 ball-by-ball simulations → per-player floor/median/P90/P95 → GL optimiser → C/VC leverage → validation.
 4. **⟳ Refresh** — re-researches the same match. Every refresh is saved in `data/matches/<id>/`, and changes (toss, XI, pitch) are shown.
 
 ## Saved rules
