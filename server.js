@@ -1,6 +1,9 @@
 // DreamTeam GL engine — zero-framework Node server.
 // Serves the SPA, reads screenshots and researches matches with Claude, caches weather, versions every data refresh.
 const http = require('http');
+const fsBoot = require('fs'), pathBoot = require('path');
+// load .env (local, gitignored) before anything reads process.env
+try { for (const l of fsBoot.readFileSync(pathBoot.join(__dirname, '.env'), 'utf8').split('\n')) { const m = l.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/); if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, ''); } } catch { }
 const fs = require('fs');
 const path = require('path');
 const claude = require('./lib/claude');
@@ -143,6 +146,17 @@ http.createServer(async (req, res) => {
       data._uploadedAt = new Date().toISOString();
       writeJSON(path.join(DATA, 'last-extract.json'), data);
       return send(res, 200, { ok: true, data });
+    }
+    if (url.pathname === '/api/config' && req.method === 'POST') {
+      const { apiKey } = await body(req, 1e4);
+      const key = String(apiKey || '').trim();
+      if (!/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(key)) return send(res, 400, { ok: false, message: 'That does not look like an Anthropic API key (it should start with sk-ant-).' });
+      try { await claude.setKey(key); }
+      catch (e) { return send(res, 400, { ok: false, message: e.status === 401 ? 'Anthropic rejected this key (invalid or revoked).' : e.status === 404 ? `Key works but has no access to ${claude.MODEL}.` : 'Could not verify key: ' + e.message }); }
+      const envPath = path.join(ROOT, '.env');
+      const lines = (fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8').split('\n') : []).filter(l => l && !l.startsWith('ANTHROPIC_API_KEY='));
+      fs.writeFileSync(envPath, lines.concat(`ANTHROPIC_API_KEY=${key}`).join('\n') + '\n', { mode: 0o600 });
+      return send(res, 200, { ok: true });
     }
     if (url.pathname === '/api/process' && req.method === 'POST') {
       if (!claude.configured()) return send(res, 200, NEED_KEY);

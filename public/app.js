@@ -98,7 +98,9 @@ const App = (() => {
 
   function processView() {
     const claudeOk = status?.claude;
-    return `${claudeOk ? '' : `<div class="banner"><b>Claude is not configured.</b> Processing an image needs Claude (vision + web search). Restart the server with <code>ANTHROPIC_API_KEY=sk-ant-… npm start</code>. The saved match below still works.</div>`}
+    return `${claudeOk ? '' : `<div class="banner"><b>Connect Claude to enable Process.</b> Reading the image and researching the match use Claude (vision + web search), which needs your Anthropic API key. Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com → API keys</a>.
+      <div class="row" style="margin-top:8px"><input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…" style="flex:1;min-width:240px"><button class="btn" onclick="App.saveKey()">Save key</button><span id="keyMsg" class="small"></span></div>
+      <div class="small muted" style="margin-top:4px">The key is checked with Anthropic, then stored only on this computer in <code>.env</code> (not committed to git, never sent back to the browser). The saved match below works without it.</div></div>`}
     <div class="card process"><h3>Upload match details</h3>
       <div class="grid two" style="align-items:start">
         <div><div id="drop" class="drop"><b>Drop the match screenshot here</b>, click to choose, or paste (Ctrl/⌘+V)<br><span class="small muted">A match page or Dream11 / My11Circle contest page. Up to 5 images; credits and "selected by %" are read if shown.</span>
@@ -316,6 +318,12 @@ const App = (() => {
     player(id) { $('#modalBody').innerHTML = playerDetail(id); $('#modal').classList.remove('hidden'); },
     closeModal() { $('#modal').classList.add('hidden'); },
     dropShot(i) { shots.splice(i, 1); render(); },
+    async saveKey() {
+      const msg = $('#keyMsg'); msg.textContent = 'Checking key…';
+      const r = await api('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: $('#apiKey').value }) }).catch(e => ({ ok: false, message: e.message }));
+      if (!r.ok) { msg.textContent = r.message; msg.style.color = 'var(--bad)'; return; }
+      status = await api('/api/status'); render();
+    },
     async process() {
       if (!shots.length) return;
       const r = await api('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images: shots }) }).catch(e => ({ ok: false, message: e.message }));
