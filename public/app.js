@@ -4,7 +4,7 @@ const App = (() => {
   const E = Engine;
   const TABS = [['dream11', 'Dream11 Team'], ['my11', 'My11Circle Team']];
   let seed, state, status, weather = null, tab = 'dream11';
-  let shots = [], jobTimer = null, versions = [];
+  let shots = [], jobTimer = null, versions = [], draft = null, rawText = '', ocrMsg = '';
   const cache = {};
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -97,19 +97,31 @@ const App = (() => {
   }
 
   function processView() {
-    const claudeOk = status?.claude;
-    return `${claudeOk ? '' : `<div class="banner"><b>Connect Claude to enable Process.</b> Reading the image and researching the match use Claude (vision + web search), which needs your Anthropic API key. Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com → API keys</a>.
-      <div class="row" style="margin-top:8px"><input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…" style="flex:1;min-width:240px"><button class="btn" onclick="App.saveKey()">Save key</button><span id="keyMsg" class="small"></span></div>
-      <div class="small muted" style="margin-top:4px">The key is checked with Anthropic, then stored only on this computer in <code>.env</code> (not committed to git, never sent back to the browser). The saved match below works without it.</div></div>`}
-    <div class="card process"><h3>Upload match details</h3>
+    const claudeOk = status?.claude, d = draft;
+    const fld = (k, label, ph = '') => `<label class="fld"><span>${label}</span><input data-d="${k}" value="${esc(d?.[k] ?? '')}" placeholder="${esc(ph)}"></label>`;
+    const sel = (k, label, opts) => `<label class="fld"><span>${label}</span><select data-d="${k}">${opts.map(o => `<option ${d?.[k] === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`;
+    const ready = d && d.teamA && d.teamB && d.format && d.format !== 'unknown';
+    return `<div class="card process"><h3>1 · Upload match image</h3>
       <div class="grid two" style="align-items:start">
-        <div><div id="drop" class="drop"><b>Drop the match screenshot here</b>, click to choose, or paste (Ctrl/⌘+V)<br><span class="small muted">A match page or Dream11 / My11Circle contest page. Up to 5 images; credits and "selected by %" are read if shown.</span>
+        <div><div id="drop" class="drop"><b>Drop the match screenshot here</b>, click to choose, or paste (Ctrl/⌘+V)<br><span class="small muted">Match page or Dream11 / My11Circle contest page (up to 5 images). Text is extracted on this computer — no API key needed.</span>
           <input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden></div>
           <div class="row" id="thumbs" style="margin-top:8px">${shots.map((s, i) => `<div class="thumb"><img src="data:${s.mediaType};base64,${s.data}"><button onclick="event.stopPropagation();App.dropShot(${i})">×</button></div>`).join('')}</div></div>
-        <div><button class="btn big-btn" ${!shots.length || !claudeOk || job.running ? 'disabled' : ''} onclick="App.process()">▶ Process</button>
-          <ol class="small muted steps"><li>Read the image (teams, format, venue, date, credits)</li><li>Research toss, Playing XI, pitch report, venue history, player form and weather from cited sources</li><li>Apply the Dream11 and My11Circle points systems and the GL strategy, then build one team for each platform below</li></ol>
-          <div id="jobBox">${job.last || ''}</div></div>
-      </div></div>`;
+        <div><div id="ocrStatus" class="small">${ocrMsg}</div>
+          ${rawText ? `<label class="small muted">Extracted text (edit it if the OCR misread something, then press <i>Re-read fields</i>)</label><textarea id="rawText" style="min-height:150px">${esc(rawText)}</textarea><div class="row" style="margin-top:6px"><button class="btn ghost" onclick="App.reparse()">↻ Re-read fields from text</button></div>` : '<p class="small muted">The extracted text will appear here.</p>'}</div>
+      </div></div>
+    ${d ? `<div class="card" style="margin-top:14px"><h3>2 · Check the extracted details <span class="small muted">— correct anything wrong before processing</span></h3>
+      <div class="formgrid">${fld('teamA', 'Team A *', 'e.g. India')}${fld('teamAShort', 'Team A code', 'IND')}${fld('teamB', 'Team B *', 'e.g. West Indies')}${fld('teamBShort', 'Team B code', 'WI')}
+        ${sel('format', 'Format *', ['unknown', 'ODI', 'T20', 'T10'])}${fld('matchLabel', 'Match', '1st ODI')}${fld('date', 'Date', '27 Sep 2026')}${fld('startTime', 'Start time', '2:00 PM IST')}
+        ${fld('venue', 'Venue', 'Stadium, City')}${fld('city', 'City')}${fld('series', 'Series')}${sel('platform', 'Screenshot from', ['unknown', 'dream11', 'my11circle', 'other'])}</div>
+      <h3 style="margin-top:12px">Players read from the image <span class="small muted">(${d.players.length}) — credits and "selected by %" are used for that platform's team</span></h3>
+      <div class="scroll"><table><tr><th>Name</th><th>Team</th><th>Role</th><th class="n">Credits</th><th class="n">Sel %</th><th></th></tr>
+      ${d.players.map((p, i) => `<tr><td><input data-p="${i}" data-k="name" value="${esc(p.name)}"></td><td><input class="num" data-p="${i}" data-k="team" value="${esc(p.team || '')}"></td><td><select data-p="${i}" data-k="role">${['', 'WK', 'BAT', 'AR', 'BOWL'].map(r => `<option ${p.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select></td><td class="n"><input class="num" data-p="${i}" data-k="credits" value="${p.credits ?? ''}"></td><td class="n"><input class="num" data-p="${i}" data-k="selectedByPercent" value="${p.selectedByPercent ?? ''}"></td><td><button class="btn ghost" onclick="App.delPlayer(${i})">×</button></td></tr>`).join('')}</table></div>
+      <button class="btn ghost" style="margin-top:6px" onclick="App.addPlayer()">+ Add player</button>
+      <div class="row" style="margin-top:14px;align-items:flex-start"><button class="btn big-btn" style="max-width:320px" ${!ready || !claudeOk || job.running ? 'disabled' : ''} onclick="App.process()">▶ Process</button>
+        <div class="small muted" style="flex:1;min-width:240px">${!ready ? '<b class="nda">Fill in both teams and the format to enable Process.</b><br>' : ''}Process researches the toss, Playing XI, pitch report, venue history, player form and weather from cited web sources, applies the Dream11 and My11Circle points systems and the GL strategy, and builds both teams below.</div></div>
+      ${claudeOk ? '' : `<div class="banner" style="margin-top:12px"><b>Process needs Claude for the web research.</b> Paste your Anthropic API key (<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">get one</a>). It is checked, then stored only on this computer in <code>.env</code>.
+        <div class="row" style="margin-top:8px"><input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…" style="flex:1;min-width:240px"><button class="btn" onclick="App.saveKey()">Save key</button><span id="keyMsg" class="small"></span></div></div>`}
+      <div id="jobBox">${job.last || ''}</div></div>` : `<div id="jobBox">${job.last || ''}</div>`}`;
   }
   function matchStrip() {
     const m = seed.match;
@@ -129,6 +141,12 @@ const App = (() => {
     drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
     drop.ondragleave = () => drop.classList.remove('over');
     drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); };
+    $('#view').oninput = $('#view').onchange = e => {
+      const el = e.target; if (!draft) return;
+      if (el.dataset.d) { draft[el.dataset.d] = el.value; const btn = document.querySelector('.big-btn'); if (btn && ['teamA', 'teamB', 'format'].includes(el.dataset.d) && e.type === 'change') render(); }
+      if (el.dataset.p) { const p = draft.players[+el.dataset.p], k = el.dataset.k; p[k] = ['credits', 'selectedByPercent'].includes(k) ? (el.value === '' ? null : +el.value) : el.value; }
+      if (el.id === 'rawText') rawText = el.value;
+    };
   }
   async function addFiles(list) {
     for (const f of [...list].slice(0, 5 - shots.length)) {
@@ -137,13 +155,30 @@ const App = (() => {
       shots.push(data);
     }
     render();
+    runOCR();
+  }
+  // Local OCR (tesseract.js) → text → heuristic field parse; the user reviews before Process.
+  async function runOCR() {
+    if (!shots.length) return;
+    if (typeof Tesseract === 'undefined') { ocrMsg = '<span class="nda">OCR library failed to load (needs internet once). Type the details below instead.</span>'; draft = draft || MatchText.parse(''); render(); return; }
+    const setMsg = t => { ocrMsg = t; const el = $('#ocrStatus'); if (el) el.innerHTML = t; };
+    try {
+      const worker = await Tesseract.createWorker('eng', 1, { logger: m => { if (m.status === 'recognizing text') setMsg(`Extracting text… ${Math.round(m.progress * 100)}%`); else setMsg(`Preparing OCR: ${esc(m.status)}…`); } });
+      const texts = [];
+      for (let i = 0; i < shots.length; i++) { setMsg(`Extracting text from image ${i + 1}/${shots.length}…`); const r = await worker.recognize(`data:${shots[i].mediaType};base64,${shots[i].data}`); texts.push(r.data.text); }
+      await worker.terminate();
+      rawText = texts.join('\n');
+      draft = MatchText.parse(rawText);
+      ocrMsg = `✓ Text extracted from ${shots.length} image${shots.length > 1 ? 's' : ''}. Check the details below.`;
+    } catch (e) { ocrMsg = `<span class="nda">OCR failed: ${esc(e.message || e)}. Type the details below instead.</span>`; draft = draft || MatchText.parse(''); }
+    render();
   }
   // downscale large screenshots client-side (keeps uploads small, text stays legible)
   function shrink(file) {
     return new Promise(res => {
       const img = new Image(); const url = URL.createObjectURL(file);
       img.onload = () => {
-        const max = 1800, k = Math.min(1, max / Math.max(img.width, img.height));
+        const max = 2200, big = Math.max(img.width, img.height), k = big < 1100 ? 2 : Math.min(1, max / big);
         const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
         res({ mediaType: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.9).split(',')[1] });
@@ -165,7 +200,7 @@ const App = (() => {
       if (j.state !== 'running') {
         clearInterval(jobTimer); job.running = false;
         const btn = $('#refreshBtn'); if (btn) btn.disabled = false;
-        if (j.state === 'done') { await loadAll(); shots = []; render(); document.getElementById('teams')?.scrollIntoView({ behavior: 'smooth' }); }
+        if (j.state === 'done') { await loadAll(); render(); document.getElementById('teams')?.scrollIntoView({ behavior: 'smooth' }); }
         else render();
       }
     }, 1500);
@@ -317,7 +352,7 @@ const App = (() => {
     go(k) { tab = k; history.replaceState(null, '', '#' + k); render(); document.getElementById('teams')?.scrollIntoView(); },
     player(id) { $('#modalBody').innerHTML = playerDetail(id); $('#modal').classList.remove('hidden'); },
     closeModal() { $('#modal').classList.add('hidden'); },
-    dropShot(i) { shots.splice(i, 1); render(); },
+    dropShot(i) { shots.splice(i, 1); if (!shots.length) { rawText = ''; ocrMsg = ''; } render(); },
     async saveKey() {
       const msg = $('#keyMsg'); msg.textContent = 'Checking key…';
       const r = await api('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: $('#apiKey').value }) }).catch(e => ({ ok: false, message: e.message }));
@@ -325,11 +360,15 @@ const App = (() => {
       status = await api('/api/status'); render();
     },
     async process() {
-      if (!shots.length) return;
-      const r = await api('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images: shots }) }).catch(e => ({ ok: false, message: e.message }));
+      if (!draft) return;
+      const input = { ...draft, format: draft.format === 'unknown' ? null : draft.format, players: draft.players.filter(p => p.name), _uploadedAt: new Date().toISOString() };
+      const r = await api('/api/analyse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ input }) }).catch(e => ({ ok: false, message: e.message }));
       if (!r.ok) { alert(r.message || 'A job is already running.'); return; }
       job.last = ''; pollJob(); render();
     },
+    reparse() { rawText = $('#rawText')?.value ?? rawText; draft = MatchText.parse(rawText); render(); },
+    addPlayer() { draft.players.push({ name: '', team: '', role: '', credits: null, selectedByPercent: null }); render(); },
+    delPlayer(i) { draft.players.splice(i, 1); render(); },
     async refresh() {
       if (!status.claude) { alert('Refresh needs Claude. Start the server with ANTHROPIC_API_KEY=… npm start'); return; }
       const r = await api('/api/refresh', { method: 'POST' });
