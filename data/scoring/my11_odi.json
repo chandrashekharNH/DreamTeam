@@ -1,0 +1,175 @@
+{
+ "version": "My11Circle ODI — New Point System effective 2025-04-17",
+ "source": "my11_points",
+ "fetchedAt": "2026-09-27T13:44:00+05:30",
+ "playingXI": 4,
+ "run": 1,
+ "four": 4,
+ "six": 6,
+ "milestones": [
+  [
+   25,
+   4
+  ],
+  [
+   50,
+   8
+  ],
+  [
+   75,
+   12
+  ],
+  [
+   100,
+   16
+  ],
+  [
+   125,
+   20
+  ],
+  [
+   150,
+   24
+  ]
+ ],
+ "milestoneMode": "highest",
+ "duck": -3,
+ "srMinRuns": 20,
+ "srMinBalls": 10,
+ "srBands": [
+  [
+   0,
+   30,
+   -6
+  ],
+  [
+   30,
+   40,
+   -4
+  ],
+  [
+   40,
+   50,
+   -2
+  ],
+  [
+   50,
+   100,
+   0
+  ],
+  [
+   100,
+   120,
+   2
+  ],
+  [
+   120,
+   140,
+   4
+  ],
+  [
+   140,
+   9999,
+   6
+  ]
+ ],
+ "dotsPerPoint": 3,
+ "dotPoint": 1,
+ "wicket": 30,
+ "lbwBowled": 8,
+ "maiden": 4,
+ "hauls": [
+  [
+   4,
+   4
+  ],
+  [
+   5,
+   8
+  ],
+  [
+   6,
+   12
+  ]
+ ],
+ "econMinOvers": 5,
+ "econBands": [
+  [
+   0,
+   2.5,
+   6
+  ],
+  [
+   2.5,
+   3.5,
+   4
+  ],
+  [
+   3.5,
+   4.5,
+   2
+  ],
+  [
+   4.5,
+   7,
+   0
+  ],
+  [
+   7,
+   8,
+   -2
+  ],
+  [
+   8,
+   9,
+   -4
+  ],
+  [
+   9,
+   99,
+   -6
+  ]
+ ],
+ "catch": 8,
+ "threeCatchBonus": 4,
+ "stumping": 12,
+ "runoutDirect": 12,
+ "runoutIndirect": 6,
+ "captain": 2,
+ "viceCaptain": 1.5,
+ "conflicts": [
+  {
+   "field": "playingXI",
+   "values": [
+    {
+     "value": 4,
+     "source": "my11_points"
+    },
+    {
+     "value": 2,
+     "source": "my11_rules_search"
+    }
+   ],
+   "resolved": 4,
+   "rule": "Tier-1 official page preferred"
+  },
+  {
+   "field": "milestoneMode",
+   "values": [
+    {
+     "value": "highest",
+     "source": "model_prior"
+    }
+   ],
+   "resolved": "highest",
+   "rule": "Official page lists bonuses but not whether they stack — UNVERIFIED; switch to 'cumulative' in Fantasy Points if the app shows stacking"
+  }
+ ],
+ "name": "My11Circle",
+ "haulMode": "highest",
+ "fieldStatus": {
+  "_all": "VERIFIED — official My11Circle points page (fetched 13:44 IST)"
+ },
+ "format": "ODI",
+ "status": "VERIFIED — official my11circle.com points page (27 Sep 2026)"
+}

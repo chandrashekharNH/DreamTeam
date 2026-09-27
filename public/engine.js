@@ -16,18 +16,24 @@ const Engine = (() => {
   }
 
   // ---------- Generic ODI priors (labelled MODEL PRIOR everywhere they surface) ----------
-  const BAT_PRIOR = { 1: [38, 88], 2: [38, 88], 3: [42, 86], 4: [38, 88], 5: [34, 92], 6: [28, 98], 7: [24, 100], 8: [16, 85], 9: [11, 75], 10: [8, 65], 11: [6, 55] };
-  const BOWL_PRIOR = { pace: { wpo: 0.105, epo: 5.7 }, spin: { wpo: 0.095, epo: 5.1 }, parttime: { wpo: 0.075, epo: 6.0 } };
-  const PHASE = { pp: { rpb: 0.92, pd: 0.9 }, mid: { rpb: 0.93, pd: 0.95 }, death: { rpb: 1.38, pd: 1.55 } };
-  const RPB0 = 0.9, PD0 = 0.1 / 6;
-  // Global calibration so the generic priors reproduce typical modern ODI outcomes (≈280 runs, ≈7.5 wkts per innings).
-  const CAL = { rpb: 1.03, pd: 0.84 };
+  // Per-format generic priors. Global calibration (CAL) makes them reproduce typical outcomes:
+  // ODI ≈ 270 runs / 7.8 wkts per innings; T20 ≈ 170 runs / 7 wkts.
+  const FMT = {
+    ODI: { overs: 50, maxOv: 10, ppEnd: 10, deathStart: 40, parttime: 5, shortMin: 25, shortRange: 20, w15: 15,
+      BAT_PRIOR: { 1: [38, 88], 2: [38, 88], 3: [42, 86], 4: [38, 88], 5: [34, 92], 6: [28, 98], 7: [24, 100], 8: [16, 85], 9: [11, 75], 10: [8, 65], 11: [6, 55] },
+      BOWL_PRIOR: { pace: { wpo: 0.105, epo: 5.7 }, spin: { wpo: 0.095, epo: 5.1 }, parttime: { wpo: 0.075, epo: 6.0 } },
+      PHASE: { pp: { rpb: 0.92, pd: 0.9 }, mid: { rpb: 0.93, pd: 0.95 }, death: { rpb: 1.38, pd: 1.55 } },
+      RPB0: 0.9, PD0: 0.1 / 6, CAL: { rpb: 1.03, pd: 0.84 }, hi: 300, lo: 230, deathBig: 95, collapsePP: 3 },
+    T20: { overs: 20, maxOv: 4, ppEnd: 6, deathStart: 15, parttime: 2, shortMin: 8, shortRange: 10, w15: 6,
+      BAT_PRIOR: { 1: [28, 138], 2: [28, 138], 3: [30, 135], 4: [28, 138], 5: [25, 142], 6: [21, 145], 7: [17, 140], 8: [12, 125], 9: [8, 110], 10: [6, 95], 11: [4, 85] },
+      BOWL_PRIOR: { pace: { wpo: 0.34, epo: 8.5 }, spin: { wpo: 0.31, epo: 7.7 }, parttime: { wpo: 0.25, epo: 8.9 } },
+      PHASE: { pp: { rpb: 1.0, pd: 0.85 }, mid: { rpb: 0.92, pd: 1.0 }, death: { rpb: 1.22, pd: 1.35 } },
+      RPB0: 1.38, PD0: 0.33 / 6, CAL: { rpb: 1.07, pd: 0.9 }, hi: 190, lo: 145, deathBig: 60, collapsePP: 3 },
+  };
+  FMT.T10 = { ...FMT.T20, overs: 10, maxOv: 2, ppEnd: 3, deathStart: 7, parttime: 1, shortMin: 5, shortRange: 4, w15: 3, hi: 110, lo: 80, deathBig: 45 };
+  const fmtOf = seed => FMT[seed?.match?.format] || FMT.ODI;
 
-  const DEFAULT_WEIGHTS = { form: 15, venue: 15, role: 15, expected: 20, ceiling: 10, pitch: 10, toss: 5, matchup: 5, fielding: 5, differential: 5 };
-  const DEFAULT_OBJECTIVE = { mean: 0.45, ceiling: 0.45, selection: 0.10, ceilingPct: 85 };
-  const DEFAULT_RECENCY = { last5: 50, mid: 30, older: 20 };
 
-  const phaseOf = o => (o < 10 ? 'pp' : o < 40 ? 'mid' : 'death');
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const pct = (arr, p) => { const s = Float64Array.from(arr).sort(); return s[Math.min(s.length - 1, Math.floor(p / 100 * s.length))]; };
   const mean = arr => { let s = 0; for (const v of arr) s += v; return s / arr.length; };
@@ -40,7 +46,7 @@ const Engine = (() => {
       r.bat += l.runs * cfg.run;
       r.bonus += l.fours * cfg.four + l.sixes * cfg.six;
       const ms = cfg.milestones.filter(([m]) => l.runs >= m);
-      if (ms.length) r.bonus += cfg.milestoneMode === 'cumulative' ? ms.reduce((a, [, p]) => a + p, 0) : ms[ms.length - 1][1];
+      if (ms.length) r.bonus += cfg.milestoneMode === 'cumulative' || (cfg.milestoneMode === 'stack-below-100' && l.runs < 100) ? ms.reduce((a, [, p]) => a + p, 0) : ms[ms.length - 1][1];
       if (l.out && l.runs === 0 && role !== 'BOWL') r.neg += cfg.duck;
       if (l.runs >= cfg.srMinRuns || l.balls >= cfg.srMinBalls) {
         const s = band(cfg.srBands, l.runs / l.balls * 100);
@@ -85,7 +91,7 @@ const Engine = (() => {
     }
     // provisional XI: top-11 by weighted support per team (only used while official XI unconfirmed)
     const provisional = {};
-    for (const t of ['IND', 'WI']) {
+    for (const t of seed.teams || ['IND', 'WI']) {
       if (confirmed) { provisional[t] = confirmed[t].slice(); continue; }
       provisional[t] = seed.players.filter(p => p.team === t).sort((a, b) => out[b.id].support - out[a.id].support).slice(0, 11).map(p => p.id);
     }
@@ -95,22 +101,23 @@ const Engine = (() => {
   // ---------- Player parameter build ----------
   function buildPlayers(seed, state, xi) {
     const ev = seed.evidence;
-    const form = state.form || {};
+    const form = { ...(seed.form || {}), ...(state.form || {}) };
+    const F = fmtOf(seed);
     const roles = state.roles || {};
     const credits = state.credits || {};
     const posOv = state.positions || {};
     const res = [];
-    for (const t of ['IND', 'WI']) {
-      for (const id of xi[t]) {
+    for (const t of seed.teams || ['IND', 'WI']) {
+      for (const id of xi[t] || []) {
         const s = seed.players.find(p => p.id === id);
-        const p = { ...s, role: roles[id] || s.role, pos: posOv[id] || s.pos, credit: credits[id] ?? null, notes: [], evidence: ev.filter(e => e.player === id), formImported: !!(form[id] && form[id].balls > 0) };
-        const [pa, psr] = BAT_PRIOR[clamp(p.pos, 1, 11)];
+        const p = { ...s, role: roles[id] || s.role, pos: posOv[id] || s.pos, credit: credits[id] ?? s.credit ?? null, notes: [], evidence: ev.filter(e => e.player === id), formImported: !!(form[id] && form[id].balls > 0) };
+        const [pa, psr] = F.BAT_PRIOR[clamp(p.pos, 1, 11)];
         let avg = pa, sr = psr; const trail = [`Bat prior for position ${p.pos}: avg ${pa}, SR ${psr} (MODEL PRIOR)`];
         const f = form[id];
         if (f && f.balls > 0) {
           const dis = Math.max(0, (f.inns || 0) - (f.no || 0));
           avg = (pa * 4 + f.runs) / (4 + dis);
-          sr = (psr / 100 * 200 + f.runs) / (200 + f.balls) * 100;
+          const kb = F.overs * 4; sr = (psr / 100 * kb + f.runs) / (kb + f.balls) * 100;
           trail.push(`Blended with imported last-N ODI form (${f.inns} inns, ${f.runs} r, ${f.balls} b; source: ${f.source || 'user'}) → avg ${avg.toFixed(1)}, SR ${sr.toFixed(1)}`);
         }
         for (const e of p.evidence) {
@@ -120,10 +127,11 @@ const Engine = (() => {
         }
         p.batAvg = avg; p.batSR = sr; p.batTrail = trail;
         if (p.bowl) {
-          const b = p.bowl.quota <= 5 ? BOWL_PRIOR.parttime : BOWL_PRIOR[p.bowl.type];
-          let wpo = b.wpo, epo = b.epo; const bt = [`Bowl prior (${p.bowl.quota <= 5 ? 'part-time' : p.bowl.type}): ${wpo} wkts/over, econ ${epo} (MODEL PRIOR)`];
+          p.bowl = { ...p.bowl, quota: Math.min(F.maxOv, p.bowl.quota) };
+          const b = p.bowl.quota <= F.parttime ? F.BOWL_PRIOR.parttime : F.BOWL_PRIOR[p.bowl.type];
+          let wpo = b.wpo, epo = b.epo; const bt = [`Bowl prior (${p.bowl.quota <= F.parttime ? 'part-time' : p.bowl.type}): ${wpo} wkts/over, econ ${epo} (MODEL PRIOR)`];
           if (f && f.overs > 0) {
-            wpo = (b.wpo * 30 + (f.wkts || 0)) / (30 + f.overs); epo = (b.epo * 30 + (f.conceded || 0)) / (30 + f.overs);
+            const k = F.maxOv * 3; wpo = (b.wpo * k + (f.wkts || 0)) / (k + f.overs); epo = (b.epo * k + (f.conceded || 0)) / (k + f.overs);
             bt.push(`Blended with imported form (${f.overs} ov, ${f.wkts} w, ${f.conceded} r) → ${wpo.toFixed(3)} w/o, econ ${epo.toFixed(2)}`);
           }
           for (const e of p.evidence) if (e.metric === 'venueWkts') { wpo *= 1.04; bt.push(`Venue wickets ${e.value} (n=${e.sample}, small sample) → wkt rate ×1.04`); }
@@ -137,13 +145,24 @@ const Engine = (() => {
 
   // ---------- Conditions (venue / pitch / weather / toss) ----------
   function conditions(seed, weather, opts) {
-    const c = { paceWkt: 1, spinWkt: 1, econ: 1, ppPaceWkt: 1, dewSpinWkt: 1, dewSpinEcon: 1, dewBatSR: 1, rainShortProb: 0, notes: [] };
-    if (seed.venue.seamerAvg?.value) { c.paceWkt *= 1.08; c.notes.push({ k: 'venue', t: `Seamer average ${seed.venue.seamerAvg.value} at venue (3rd best in India, limited data) → pace wicket rate ×1.08`, src: seed.venue.seamerAvg.source }); }
-    c.notes.push({ k: 'pitch', t: 'Pitch reports: true bounce, good for batting once set; new-ball help; spin in middle overs → classified BALANCED (pace-assist early)', src: 'yahoo_pitch' });
-    c.notes.push({ k: 'dew', t: 'Dew reported to affect evening play and favour chasing side → 2nd-innings spin wickets ×0.9, spin econ ×1.05, batting SR ×1.03', src: 'yahoo_pitch' });
-    c.dewSpinWkt = 0.9; c.dewSpinEcon = 1.05; c.dewBatSR = 1.03;
+    const F = fmtOf(seed), v = seed.venue || {};
+    const c = { F, paceWkt: 1, spinWkt: 1, econ: 1, ppPaceWkt: 1, dewSpinWkt: 1, dewSpinEcon: 1, dewBatSR: 1, rainShortProb: 0, notes: [] };
+    const pt = v.pitchType || 'UNKNOWN', ps = v.pitchText?.[0]?.source || null;
+    if (v.seamerAvg?.value) { c.paceWkt *= 1.08; c.notes.push({ k: 'venue', t: `Seamer average ${v.seamerAvg.value} at venue (limited data) → pace wicket rate ×1.08`, src: v.seamerAvg.source }); }
+    else if (v.paceAssist || pt === 'PACE_ASSIST') { const m = pt === 'PACE_ASSIST' ? 1.1 : 1.05; c.paceWkt *= m; c.notes.push({ k: 'pitch', t: `Pitch report: pace assistance → pace wicket rate ×${m}`, src: ps }); }
+    if (v.spinAssist || pt === 'SPIN_ASSIST') { c.spinWkt *= 1.1; c.notes.push({ k: 'pitch', t: 'Pitch report: spin assistance → spin wicket rate ×1.10', src: ps }); }
+    if (pt === 'BATTER_FRIENDLY') { c.econ *= 1.06; c.notes.push({ k: 'pitch', t: 'Batter-friendly surface → scoring rate ×1.06', src: ps }); }
+    if (pt === 'SLOW' || pt === 'TWO_PACED') { c.econ *= 0.94; c.spinWkt *= 1.05; c.notes.push({ k: 'pitch', t: `${pt.replace('_', '-').toLowerCase()} surface → scoring ×0.94, spin wickets ×1.05`, src: ps }); }
+    if (pt === 'BALANCED') c.notes.push({ k: 'pitch', t: 'Pitch classified BALANCED → no pitch multiplier', src: ps });
+    if (pt === 'UNKNOWN' && !v.seamerAvg) c.notes.push({ k: 'pitch', t: 'Pitch report unavailable → no pitch adjustment (INSUFFICIENT DATA)', src: null });
+    if (v.dewExpected) { c.dewSpinWkt = 0.9; c.dewSpinEcon = 1.05; c.dewBatSR = 1.03; c.notes.push({ k: 'dew', t: 'Dew expected → 2nd-innings spin wickets ×0.9, spin econ ×1.05, batting SR ×1.03', src: ps }); }
+    else c.notes.push({ k: 'dew', t: 'Dew not reported → no dew adjustment', src: null });
     if (weather && weather.ok) {
-      const h = weather.data.hourly; const idx = h.time.map((t, i) => [t, i]).filter(([t]) => t.startsWith(seed.match.date) && +t.slice(11, 13) >= 14 && +t.slice(11, 13) <= 22).map(([, i]) => i);
+      const h = weather.data.hourly, off = (weather.data.utc_offset_seconds || 0) * 1000;
+      const st = seed.match.start ? new Date(new Date(seed.match.start).getTime() + off).toISOString().slice(0, 13) : null;
+      const hours = seed.match.format === 'ODI' ? 9 : seed.match.format === 'T10' ? 2 : 4;
+      let i0 = st ? h.time.findIndex(t => t.slice(0, 13) === st) : -1;
+      let idx = i0 >= 0 ? h.time.slice(i0, i0 + hours).map((_, k) => i0 + k) : h.time.map((t, i) => [t, i]).filter(([t]) => t.startsWith(seed.match.date) && +t.slice(11, 13) >= 13).map(([, i]) => i);
       if (idx.length) {
         const rain = Math.max(...idx.map(i => h.precipitation_probability[i] ?? 0));
         const hum = mean(idx.slice(0, 4).map(i => h.relative_humidity_2m[i]));
@@ -154,7 +173,7 @@ const Engine = (() => {
         c.weather = { rain, hum, cloud };
       }
     } else c.notes.push({ k: 'weather', t: 'Live weather unavailable — weather adjustments disabled (no guessing)', src: null });
-    c.tossKnown = opts.tossKnown; c.batFirst = opts.batFirst;
+    c.tossKnown = opts.tossKnown && !!opts.batFirst; c.batFirst = opts.batFirst;
     return c;
   }
 
@@ -163,16 +182,19 @@ const Engine = (() => {
     const rand = mulberry32(seedNum);
     const N = players.length;
     const idx = Object.fromEntries(players.map((p, i) => [p.id, i]));
-    const teams = { IND: players.filter(p => p.team === 'IND'), WI: players.filter(p => p.team === 'WI') };
+    const F = cond.F || FMT.ODI; const { PHASE, RPB0, PD0, CAL } = F;
+    const phaseOf = o => (o < F.ppEnd ? 'pp' : o < F.deathStart ? 'mid' : 'death');
+    const codes = [...new Set(players.map(p => p.team))];
+    const teams = Object.fromEntries(codes.map(t => [t, players.filter(p => p.team === t)]));
     const order = t => teams[t].slice().sort((a, b) => a.pos - b.pos || (a.bowl ? 1 : 0) - (b.bowl ? 1 : 0));
     const anyAlt = players.some(p => p.posAlt);
-    let orders = { IND: order('IND'), WI: order('WI') };
+    let orders = Object.fromEntries(codes.map(t => [t, order(t)]));
     const reorder = () => { // batting-position uncertainty: players with posAlt swap slot 50/50 per simulation
       for (const p of players) if (p.posAlt) p._pos = rand() < 0.5 ? p.pos : p.posAlt;
       const o = t => teams[t].slice().sort((a, b) => (a._pos ?? a.pos) - (b._pos ?? b.pos) || (a.posAlt ? -1 : 0) - (b.posAlt ? -1 : 0) || (a.bowl ? 1 : 0) - (b.bowl ? 1 : 0));
-      orders = { IND: o('IND'), WI: o('WI') };
+      orders = Object.fromEntries(codes.map(t => [t, o(t)]));
     };
-    const bowlers = { IND: teams.IND.filter(p => p.bowl), WI: teams.WI.filter(p => p.bowl) };
+    const bowlers = Object.fromEntries(codes.map(t => [t, teams[t].filter(p => p.bowl)]));
     const pts = players.map(() => new Float32Array(n));
     const brk = players.map(() => ({ xi: 0, bat: 0, bowl: 0, field: 0, bonus: 0, neg: 0 }));
     const stat = players.map(() => ({ balls: 0, runs: 0, fours: 0, sixes: 0, bBalls: 0, wkts: 0, conceded: 0, dots: 0, catches: 0, w3: 0, r50: 0, r100: 0, batted: 0 }));
@@ -185,12 +207,12 @@ const Engine = (() => {
         const ph = phaseOf(o);
         let best = null, bs2 = -1;
         for (const b of bs) {
-          const c = cnt.get(b.id); if (b.id === last || c >= 10) continue;
+          const c = cnt.get(b.id); if (b.id === last || c >= F.maxOv) continue;
           const room = b.bowl.quota - c + 0.5; if (room <= 0) continue;
           const sc = (b.bowl[ph] + 0.05) * room * (0.75 + 0.5 * rand());
           if (sc > bs2) { bs2 = sc; best = b; }
         }
-        if (!best) for (const b of bs) { if (b.id !== last && cnt.get(b.id) < 10) { best = b; break; } }
+        if (!best) for (const b of bs) { if (b.id !== last && cnt.get(b.id) < F.maxOv) { best = b; break; } }
         if (!best) best = bs.find(b => b.id !== last) || bs[0];
         cnt.set(best.id, cnt.get(best.id) + 1); out.push(best); last = best.id;
       }
@@ -221,7 +243,7 @@ const Engine = (() => {
           if (rand() < 0.035) { score++; bl.conceded++; overRuns++; } // extras (wides/no-balls)
           ball++; bl.bBalls++; L.balls++;
           if (rand() < pd) {
-            wk_++; L.out = 1; if (o < 10) ppW++; if (o < 15) w15 = wk_;
+            wk_++; L.out = 1; if (o < F.ppEnd) ppW++; if (o < F.w15) w15 = wk_;
             const u = rand();
             if (u < 0.05) { const f = fielders[Math.floor(rand() * fielders.length)]; const Lf = lines[idx[f.id]]; if (rand() < 0.5) Lf.roD++; else Lf.roI++; }
             else {
@@ -248,7 +270,7 @@ const Engine = (() => {
           score += r; bl.conceded += r; overRuns += r; L.runs += r;
           if (r === 4) L.fours++; if (r === 6) L.sixes++; if (r === 0) bl.dots++;
           if (top3.includes(bat.id)) top3r += r;
-          if (o >= overs - 10) last10 += r;
+          if (o >= overs - (F.overs - F.deathStart)) last10 += r;
           if (r % 2 === 1) [s, ns] = [ns, s];
         }
         if (overRuns === 0 && bl.bBalls % 6 === 0) bl.maidens++;
@@ -261,11 +283,11 @@ const Engine = (() => {
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < N; j++) lines[j] = emptyLine();
       if (anyAlt) reorder();
-      const batFirst = cond.tossKnown ? cond.batFirst : (rand() < 0.5 ? 'IND' : 'WI');
-      const chase = batFirst === 'IND' ? 'WI' : 'IND';
-      const overs = rand() < cond.rainShortProb ? 25 + Math.floor(rand() * 20) : 50;
+      const batFirst = cond.tossKnown ? cond.batFirst : (rand() < 0.5 ? codes[0] : codes[1]);
+      const chase = batFirst === codes[0] ? codes[1] : codes[0];
+      const overs = rand() < cond.rainShortProb ? F.shortMin + Math.floor(rand() * F.shortRange) : F.overs;
       const g = () => Math.exp((rand() + rand() + rand() - 1.5) * 0.32); // team-day factor → correlation
-      const tf = { IND: g(), WI: g() };
+      const tf = Object.fromEntries(codes.map(t => [t, g()]));
       const a = innings(batFirst, chase, overs, null, false, tf[batFirst]);
       const b = innings(chase, batFirst, overs, a.score, true, tf[chase]);
       for (let j = 0; j < N; j++) {
@@ -280,12 +302,12 @@ const Engine = (() => {
       sims.push({
         batFirst, overs, inn1: a.score, inn1W: a.wkts, inn2: b.score, inn2W: b.wkts, chaseWon,
         scripts: {
-          S1: a.score >= 300,
-          S2: a.ppW >= 3 || b.ppW >= 3,
+          S1: a.score >= F.hi,
+          S2: a.ppW >= F.collapsePP || b.ppW >= F.collapsePP,
           S3: (a.bowlW + b.bowlW) >= 8 && (a.spinW + b.spinW) / (a.bowlW + b.bowlW) >= 0.6,
           S4: chaseWon && b.wkts <= 4,
-          S5: a.score < 230,
-          S6: a.last10 >= 95 || b.last10 >= 95,
+          S5: a.score < F.lo,
+          S6: a.last10 >= F.deathBig || b.last10 >= F.deathBig,
         },
       });
     }
@@ -295,8 +317,8 @@ const Engine = (() => {
   }
 
   const SCRIPTS = {
-    S1: 'High-scoring batting match (1st inns ≥ 300)', S2: 'Early-wicket collapse (3+ wkts in a powerplay)', S3: 'Spin dominance (spinners ≥ 60% of bowler wkts)',
-    S4: 'Chase dominance (chase won, ≤ 4 wkts down)', S5: 'Low-scoring match (1st inns < 230)', S6: 'Death-over explosion (95+ in last 10 overs)',
+    S1: 'High-scoring batting match', S2: 'Early-wicket collapse (3+ wkts in a powerplay)', S3: 'Spin dominance (spinners ≥ 60% of bowler wkts)',
+    S4: 'Chase dominance (chase won, ≤ 4 wkts down)', S5: 'Low-scoring match', S6: 'Death-over explosion',
   };
 
   function summarize(sim) {
@@ -313,290 +335,8 @@ const Engine = (() => {
     });
   }
 
-  // ---------- Selection / GL scoring ----------
+  // ---------- helpers ----------
   function norm(vals) { const lo = Math.min(...vals), hi = Math.max(...vals); return v => hi === lo ? 50 : (v - lo) / (hi - lo) * 100; }
-  function scorePlayers(players, summ, tossDelta, weights, seed) {
-    const nm = norm(summ.map(s => s.mean)), nc = norm(summ.map(s => s.ceiling)), nf = norm(summ.map(s => s.brk.field));
-    return players.map((p, j) => {
-      const s = summ[j]; const c = {}; const flags = [];
-      // form
-      const fe = p.evidence.find(e => e.kind === 'form');
-      if (p.formImported) c.form = clamp(50 + (p.batSR - BAT_PRIOR[clamp(p.pos, 1, 11)][1]) * 1.2 + (p.batAvg - BAT_PRIOR[clamp(p.pos, 1, 11)][0]) * 0.8, 0, 100);
-      else if (fe) c.form = clamp(50 + (fe.value - 88) * 1.2, 0, 100);
-      else { c.form = 50; flags.push('Recent form: DATA NOT AVAILABLE (neutral 50)'); }
-      // venue
-      const ve = p.evidence.filter(e => e.kind === 'venue' && e.sample);
-      if (ve.length) { const conf = Math.min(1, ve[0].sample / 10); c.venue = 50 + 40 * conf + 10; flags.push(`Venue sample n=${ve[0].sample}: low confidence, weight capped`); }
-      else { c.venue = 50; flags.push('Player venue record: DATA NOT AVAILABLE / INSUFFICIENT SAMPLE'); }
-      // role security
-      const batSec = (p.pos <= 4 ? 92 : p.pos <= 6 ? 76 : p.pos === 7 ? 60 : 30) - (p.posAlt ? 15 : 0);
-      if (p.posAlt) flags.push('Batting position UNCERTAIN: ' + p.posNote);
-      const bowlSec = p.bowl ? clamp(p.bowl.quota / 10 * 92, 0, 92) : 0;
-      c.role = clamp(Math.max(batSec, bowlSec) + (batSec >= 60 && bowlSec >= 45 ? 8 : 0), 0, 100);
-      c.expected = nm(s.mean); c.ceiling = nc(s.ceiling);
-      // pitch: balanced, early pace assist, spin in middle
-      c.pitch = p.bowl ? (p.bowl.type === 'pace' ? (p.bowl.pp >= 0.7 ? 68 : 58) : 60) : (p.pos <= 4 ? 62 : 55);
-      c.toss = clamp(50 + (tossDelta[p.id] || 0) * 2.5, 0, 100);
-      const me = p.evidence.find(e => e.kind === 'matchup');
-      if (me) c.matchup = clamp(50 + (me.value - 40) * 0.8, 0, 100); else { c.matchup = 50; flags.push('Batter-vs-bowler: INSUFFICIENT SAMPLE'); }
-      c.fielding = nf(s.brk.field);
-      c.differential = clamp(100 - c.expected * 0.6 - (p.captain ? 12 : 0) + (s.ceiling / Math.max(1, s.mean) - 1.6) * 30, 0, 100);
-      const W = Object.values(weights).reduce((a, b) => a + b, 0);
-      const sel = Object.keys(weights).reduce((a, k) => a + c[k] * weights[k], 0) / W;
-      const gl = 0.35 * c.ceiling + 0.25 * c.expected + 0.15 * s.p80 * 100 / Math.max(0.01, Math.max(...summ.map(x => x.p80))) + 0.1 * (p.bowl && p.pos <= 7 ? 100 : 40) + 0.1 * c.role + 0.05 * c.differential;
-      let tier = 'VALUE';
-      if (s.p40 >= 0.5 && c.expected >= 60) tier = 'CORE';
-      else if (s.ceiling / Math.max(1, s.mean) >= 2.3 && c.ceiling >= 45) tier = 'HIGH-VARIANCE';
-      else if (c.differential >= 55 && c.ceiling >= 40) tier = 'DIFFERENTIAL';
-      return { id: p.id, comp: c, selection: sel, gl, tier, flags };
-    });
-  }
-
-  // ---------- Captain / VC ----------
-  function captainScores(players, summ, sim) {
-    const keys = Object.keys(SCRIPTS);
-    const maxM = Math.max(...summ.map(s => s.mean)), maxC = Math.max(...summ.map(s => s.ceiling));
-    return players.map((p, j) => {
-      const s = summ[j];
-      const routes = [s.brk.bat + s.brk.bonus > 12, s.brk.bowl > 12, s.brk.field > 4].filter(Boolean).length;
-      const multi = 1 + 0.08 * (routes - 1);
-      const roleSec = (p.pos <= 4 || (p.bowl && p.bowl.quota >= 8) ? 1 : p.pos <= 6 ? 0.92 : 0.8) * (p.posAlt ? 0.85 : 1);
-      const cover = keys.filter(k => s.byScript[k] != null && s.byScript[k] >= s.mean * 0.9).length / keys.length;
-      const cap = (s.mean / maxM) * (s.ceiling / maxC) * roleSec * multi * (0.7 + 0.3 * cover) * 100;
-      const vc = (s.mean / maxM) * (s.ceiling / maxC) * (0.5 + s.p40) * 100 / 1.5;
-      return { id: p.id, cap, vc, routes, roleSec, cover };
-    });
-  }
-
-  // ---------- Optimiser ----------
-  function optimise(players, sim, summ, scores, caps, cfg, cons, objW, seedNum = 7) {
-    const rand = mulberry32(seedNum);
-    const N = players.length, n = sim.n;
-    const creditsKnown = players.every(p => typeof p.credit === 'number');
-    const sel = scores.map(s => s.selection);
-    const feasible = S => {
-      if (S.length !== cons.players || new Set(S).size !== S.length) return false;
-      const rc = { WK: 0, BAT: 0, AR: 0, BOWL: 0 }, tc = { IND: 0, WI: 0 }; let cr = 0;
-      for (const j of S) { rc[players[j].role]++; tc[players[j].team]++; cr += players[j].credit || 0; }
-      for (const r in cons.roles) if (rc[r] < cons.roles[r][0] || rc[r] > cons.roles[r][1]) return false;
-      if (tc.IND > cons.maxFromTeam || tc.WI > cons.maxFromTeam || tc.IND < 1 || tc.WI < 1) return false;
-      if (creditsKnown && cr > cons.credits + 1e-9) return false;
-      return true;
-    };
-    const cv = S => {
-      const byCap = S.slice().sort((a, b) => caps[b].cap - caps[a].cap); const C = byCap[0];
-      const VC = S.filter(j => j !== C).sort((a, b) => caps[b].vc - caps[a].vc)[0];
-      return [C, VC];
-    };
-    const tot = new Float32Array(n);
-    const evaluate = S => {
-      const [C, VC] = cv(S);
-      tot.fill(0);
-      for (const j of S) { const a = sim.pts[j]; const m = j === C ? cfg.captain : j === VC ? cfg.viceCaptain : 1; for (let i = 0; i < n; i++) tot[i] += a[i] * m; }
-      const m = mean(tot), c = pct(tot, objW.ceilingPct); const s = S.reduce((a, j) => a + sel[j], 0) / S.length;
-      return { obj: objW.mean * m + objW.ceiling * c + objW.selection * s * 3, mean: m, ceiling: c, C, VC };
-    };
-    const randomFeasible = () => {
-      for (let t = 0; t < 5000; t++) {
-        const S = []; const pool = [...Array(N).keys()].sort(() => rand() - 0.5);
-        for (const r of ['WK', 'BAT', 'AR', 'BOWL']) { const need = cons.roles[r][0]; for (const j of pool) if (S.length < 11 && players[j].role === r && !S.includes(j) && S.filter(k => players[k].role === r).length < need) S.push(j); }
-        for (const j of pool) if (S.length < 11 && !S.includes(j)) S.push(j);
-        if (feasible(S)) return S;
-      }
-      return null;
-    };
-    const greedy = () => {
-      const order = [...Array(N).keys()].sort((a, b) => sel[b] - sel[a]);
-      let S = [];
-      for (const r of ['WK', 'BAT', 'AR', 'BOWL']) for (const j of order) if (players[j].role === r && S.filter(k => players[k].role === r).length < cons.roles[r][0]) S.push(j);
-      for (const j of order) if (S.length < 11 && !S.includes(j)) S.push(j);
-      return feasible(S) ? S : randomFeasible();
-    };
-    let best = null; const starts = [greedy()]; for (let r = 0; r < 6; r++) starts.push(randomFeasible());
-    let evals = 0;
-    for (let S of starts) {
-      if (!S) continue;
-      let cur = evaluate(S); evals++;
-      for (let it = 0; it < 60; it++) {
-        let bestMove = null;
-        for (const out of S) for (let inn = 0; inn < N; inn++) {
-          if (S.includes(inn)) continue;
-          const T = S.map(j => (j === out ? inn : j)); if (!feasible(T)) continue;
-          const e = evaluate(T); evals++;
-          if (e.obj > (bestMove ? bestMove.e.obj : cur.obj) + 1e-6) bestMove = { T, e };
-        }
-        if (!bestMove) break; S = bestMove.T; cur = bestMove.e;
-      }
-      if (!best || cur.obj > best.e.obj) best = { S: S.slice(), e: cur };
-    }
-    if (!best) return { ok: false, reason: 'No feasible team under current constraints' };
-    // correlations inside the chosen 11
-    const corr = [];
-    const S = best.S;
-    for (let a = 0; a < S.length; a++) for (let b = a + 1; b < S.length; b++) {
-      const x = sim.pts[S[a]], y = sim.pts[S[b]]; const mx = mean(x), my = mean(y); let sxy = 0, sxx = 0, syy = 0;
-      for (let i = 0; i < n; i++) { const dx = x[i] - mx, dy = y[i] - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy; }
-      corr.push({ a: players[S[a]].id, b: players[S[b]].id, r: sxy / Math.sqrt(sxx * syy) });
-    }
-    corr.sort((p, q) => Math.abs(q.r) - Math.abs(p.r));
-    const tt = new Float32Array(n);
-    for (const j of S) { const m = j === best.e.C ? cfg.captain : j === best.e.VC ? cfg.viceCaptain : 1; for (let i = 0; i < n; i++) tt[i] += sim.pts[j][i] * m; }
-    return { ok: true, S, C: best.e.C, VC: best.e.VC, mean: best.e.mean, ceiling: pct(tt, 90), floor: pct(tt, 10), median: pct(tt, 50), obj: best.e.obj, creditsKnown, credits: S.reduce((a, j) => a + (players[j].credit || 0), 0), evals, corr: corr.slice(0, 6) };
-  }
-
-  // ---------- Confidence (derived, formula shown in UI) ----------
-  function confidence(seed, state, xiInfo, players, weatherOk) {
-    const R = id => seed.sources[id]?.reliability ?? 0;
-    const orNoisy = ids => 1 - ids.reduce((a, id) => a * (1 - R(id)), 1);
-    const xiConf = mean(players.map(p => xiInfo.byPlayer[p.id].conf));
-    const toss = orNoisy(seed.toss.reports.map(r => r.source));
-    const venue = Math.min(1, seed.venue.odiMatches.length / 10) * mean(seed.venue.odiMatches.map(m => R(m.source)));
-    const pitch = mean(seed.venue.pitchText.map(p => R(p.source))) * 0.75; // 0.75 = agreement factor: sources partly disagree (batting-friendly vs seam-friendly)
-    const weather = weatherOk ? R('open_meteo') * 0.8 : R('weather_news') * 0.6; // 0.8 agreement: ESPN "no rain" vs model rain probability
-    const withForm = players.filter(p => p.formImported || p.evidence.some(e => e.kind === 'form')).length;
-    const form = withForm / players.length;
-    const unresolved = seed.scoring.conflicts.filter(c => c.values.length < 2).length;
-    const scoring = R(seed.scoring.source) * (1 - 0.05 * unresolved);
-    const credits = players.filter(p => typeof p.credit === 'number').length / players.length;
-    const roles = state.rolesConfirmed ? 1 : 0.6;
-    const items = { 'Playing XI': [xiConf, 3], Toss: [toss, 1], Venue: [venue, 1.5], Pitch: [pitch, 1], Weather: [weather, 0.5], 'Recent form': [form, 2], Scoring: [scoring, 1.5], Credits: [credits, 1], Roles: [roles, 1] };
-    const W = Object.values(items).reduce((a, [, w]) => a + w, 0);
-    const data = Object.values(items).reduce((a, [v, w]) => a + v * w, 0) / W;
-    const model = 0.5 * data + 0.25 * form + 0.25 * xiConf;
-    return { items, data, model, formula: 'Data = Σ(conf×weight)/Σweight · Model = 0.5·Data + 0.25·Form + 0.25·XI' };
-  }
-
-  // ---------- Final lock ----------
-  function lockChecks(seed, state, xiInfo, players, team, cfg, cons) {
-    const S = team.S.map(j => players[j]);
-    const rc = { WK: 0, BAT: 0, AR: 0, BOWL: 0 }; S.forEach(p => rc[p.role]++);
-    const tc = { IND: S.filter(p => p.team === 'IND').length, WI: S.filter(p => p.team === 'WI').length };
-    return [
-      ['All players in confirmed Playing XI', xiInfo.confirmed && S.every(p => xiInfo.byPlayer[p.id].status === 'CONFIRMED'), xiInfo.confirmed ? '' : 'Official XI not yet user-confirmed — sources conflict'],
-      ['Correct roles', !!state.rolesConfirmed, state.rolesConfirmed ? '' : 'My11Circle role labels not verified'],
-      ['Correct credits', team.creditsKnown && team.credits <= cons.credits, team.creditsKnown ? `${team.credits.toFixed(1)} / ${cons.credits}` : 'Credits not entered — DATA NOT AVAILABLE'],
-      ['Valid team combination', Object.keys(cons.roles).every(r => rc[r] >= cons.roles[r][0] && rc[r] <= cons.roles[r][1]), JSON.stringify(rc)],
-      ['Valid player limit', tc.IND <= cons.maxFromTeam && tc.WI <= cons.maxFromTeam, `IND ${tc.IND} · WI ${tc.WI}`],
-      ['Correct scoring system', !!cfg.version, cfg.version],
-      ['Captain valid', team.S.includes(team.C), ''],
-      ['Vice-captain valid', team.S.includes(team.VC) && team.VC !== team.C, ''],
-      ['Venue data validated', seed.venue.odiMatches.every(m => m.source), 'INSUFFICIENT SAMPLE (2 ODIs) — used with low weight'],
-      ['Recent-form data validated', true, 'Only sourced evidence used; missing form shown as DATA NOT AVAILABLE'],
-      ['Toss incorporated', !!seed.toss.winner, `${seed.toss.winner} chose to ${seed.toss.decision}`],
-      ['Pitch incorporated', true, 'BALANCED / early pace assist'],
-      ['Weather incorporated', true, ''],
-      ['No duplicate players', new Set(team.S).size === 11, ''],
-      ['No unavailable players', S.every(p => xiInfo.byPlayer[p.id].status !== 'NOT IN XI'), ''],
-      ['No fabricated data', true, 'All inputs carry a source id or are labelled MODEL PRIOR'],
-    ];
-  }
-
-  // ---------- Commentary intelligence ----------
-  function matchName(name, players) {
-    if (!name) return null;
-    const n = name.toLowerCase().replace(/[^a-z ]/g, ' ').trim();
-    let best = null, sc = 0;
-    for (const p of players) {
-      const full = p.name.toLowerCase(); const parts = full.split(' ');
-      let s = 0;
-      if (full === n) s = 10; else if (n.includes(full)) s = 9;
-      else if (parts[parts.length - 1] === n.split(' ').pop()) s = 6;
-      else if (parts.some(x => x.length > 3 && n.split(' ').includes(x))) s = 4;
-      if (p.id === 'ajoseph' && /alzarri/.test(n)) s = 11; if (p.id === 'shamar' && /shamar/.test(n)) s = 11;
-      if (p.id === 'jadeja' && /jaddu/.test(n)) s = 7; if (p.id === 'nkr' && /nitish|reddy/.test(n)) s = 7;
-      if (s > sc) { sc = s; best = p; }
-    }
-    return sc >= 4 ? best : null;
-  }
-  function parseCommentary(text, players) {
-    const events = []; const errors = [];
-    for (const raw of text.split(/\n+/)) {
-      const line = raw.trim(); if (!line) continue;
-      const m = line.match(/^(\d{1,2})\.(\d)\s+(.+?)\s+to\s+(.+?)[,:]\s*(.*)$/i);
-      if (!m) { errors.push(line); continue; }
-      const [, ov, bl, bowlerN, batterN, rest0] = m; const rest = rest0.toLowerCase();
-      const bowler = matchName(bowlerN, players), batter = matchName(batterN, players);
-      const e = { over: +ov, ball: +bl, id: `${ov}.${bl}`, raw: line, bowler: bowler?.id || null, batter: batter?.id || null, bowlerName: bowlerN, batterName: batterN, runs: 0, extras: 0, extraType: null, legal: true, wicket: null };
-      if (/\bwides?\b/.test(rest)) { e.legal = false; e.extraType = 'wide'; e.extras = +(rest.match(/(\d)\s*wides?/)?.[1] || 1); }
-      else if (/no[- ]?ball/.test(rest)) { e.legal = false; e.extraType = 'noball'; e.extras = 1; e.runs = +(rest.match(/(\d)\s*runs?/)?.[1] || 0); }
-      else if (/leg ?byes?|\bbyes?\b/.test(rest)) { e.extraType = 'bye'; e.extras = +(rest.match(/(\d)\s*(?:runs?|leg ?byes?|byes?)/)?.[1] || 1); }
-      else if (/\bsix\b/.test(rest)) e.runs = 6;
-      else if (/\bfour\b/.test(rest)) e.runs = 4;
-      else if (/no run|dot/.test(rest)) e.runs = 0;
-      else { const r = rest.match(/(\d)\s*runs?/); if (r) e.runs = +r[1]; }
-      if (/\bout\b|wicket/.test(rest)) {
-        const w = { kind: 'caught', fielder: null };
-        if (/run out/.test(rest)) { w.kind = 'runout'; const f = rest0.match(/run out\s*\(([^)]+)\)/i); w.fielder = f ? matchName(f[1].split('/')[0], players)?.id : null; w.multi = f ? f[1].includes('/') : false; }
-        else if (/lbw/.test(rest)) w.kind = 'lbw';
-        else if (/\bbowled\b|\bb [a-z]+\s*$/.test(rest) && !/\bc\b|caught/.test(rest)) w.kind = 'bowled';
-        else if (/stumped|\bst\b/.test(rest)) { w.kind = 'stumped'; const f = rest0.match(/st\s+([A-Za-z ]+?)\s+b\s/i); w.fielder = f ? matchName(f[1], players)?.id : null; }
-        else { const f = rest0.match(/\bc\s+(?:&\s*b\s+)?([A-Za-z ]+?)\s+b\s/i) || rest0.match(/caught by\s+([A-Za-z ]+)/i); if (/c\s*&\s*b/i.test(rest0)) w.fielder = bowler?.id; else w.fielder = f ? matchName(f[1], players)?.id : null; }
-        e.wicket = w;
-      }
-      events.push(e);
-    }
-    return { events, errors };
-  }
-
-  function liveState(events, players, cfg, seed) {
-    const lines = Object.fromEntries(players.map(p => [p.id, emptyLine()]));
-    const team = id => players.find(p => p.id === id)?.team;
-    const inns = []; let cur = null; const derived = [];
-    const overRuns = {};
-    for (const e of events) {
-      const batT = team(e.batter) || (team(e.bowler) === 'IND' ? 'WI' : 'IND');
-      if (!cur || cur.bat !== batT) { cur = { bat: batT, runs: 0, wkts: 0, legal: 0, part: 0, partBalls: 0, balls: [], batters: {}, bowlers: {}, lastBowler: null }; inns.push(cur); }
-      const B = e.batter && lines[e.batter], W = e.bowler && lines[e.bowler];
-      const phase = e.over < 10 ? 'Powerplay' : e.over < 40 ? 'Middle overs' : 'Death overs';
-      const impact = [];
-      if (e.bowler && cur.lastBowler !== e.bowler && !(cur.bowlers[e.bowler])) derived.push({ at: e.id, type: 'NEW BOWLER', text: `${players.find(p => p.id === e.bowler)?.name || e.bowlerName} into the attack (${phase})` });
-      if (e.bowler && cur.lastBowler && cur.lastBowler !== e.bowler && e.ball === 1 && cur.bowlers[e.bowler]) derived.push({ at: e.id, type: 'BOWLING CHANGE', text: `${players.find(p => p.id === e.bowler)?.name} back on` });
-      if (e.ball === 1 || cur.lastBowler !== e.bowler) cur.lastBowler = e.bowler;
-      cur.bowlers[e.bowler] = true;
-      const total = e.runs + e.extras;
-      cur.runs += total; cur.part += total;
-      if (e.legal) { cur.legal++; cur.partBalls++; }
-      const key = `${cur.bat}-${e.over}-${e.bowler}`; overRuns[key] = overRuns[key] || { runs: 0, legal: 0, bowler: e.bowler };
-      overRuns[key].runs += e.extraType === 'bye' ? 0 : total; if (e.legal) overRuns[key].legal++;
-      if (B && e.extraType !== 'wide') {
-        if (e.extraType !== 'bye') { B.runs += e.runs; if (e.runs) impact.push(`+${e.runs * cfg.run} batting`); }
-        B.balls += e.extraType === 'noball' ? 0 : 1;
-        if (e.runs === 4 && !e.extraType) { B.fours++; impact.push(`+${cfg.four} four bonus`); }
-        if (e.runs === 6 && !e.extraType) { B.sixes++; impact.push(`+${cfg.six} six bonus`); }
-        const before = B.runs - e.runs;
-        for (const [ms] of cfg.milestones) if (before < ms && B.runs >= ms) derived.push({ at: e.id, type: ms >= 100 ? 'CENTURY' : ms === 50 ? 'FIFTY' : 'MILESTONE', text: `${players.find(p => p.id === e.batter)?.name} reaches ${ms}` });
-      }
-      if (W) {
-        if (e.legal) W.bBalls++;
-        W.conceded += e.extraType === 'bye' ? 0 : total;
-        if (e.legal && total === 0 && !e.wicket) { W.dots++; impact.push(`dot (+${cfg.dotPoint}/${cfg.dotsPerPoint} dots)`); }
-      }
-      if (e.wicket) {
-        cur.wkts++;
-        if (B) B.out = 1;
-        const w = e.wicket;
-        if (w.kind !== 'runout' && W) { W.wkts++; W.dots++; impact.push(`+${cfg.wicket} wicket`); if (w.kind === 'lbw' || w.kind === 'bowled') { W.lbwB++; impact.push(`+${cfg.lbwBowled} LBW/bowled bonus`); } }
-        if (w.fielder) { const F = lines[w.fielder]; if (w.kind === 'caught') { F.catches++; impact.push(`+${cfg.catch} catch`); } if (w.kind === 'stumped') { F.stumpings++; impact.push(`+${cfg.stumping} stumping`); } if (w.kind === 'runout') { if (w.multi) F.roI++; else F.roD++; impact.push(`+${w.multi ? cfg.runoutIndirect : cfg.runoutDirect} run-out`); } }
-        if (B && B.runs === 0) impact.push(`${cfg.duck} duck (non-bowler)`);
-        derived.push({ at: e.id, type: 'PARTNERSHIP END', text: `Partnership ended at ${cur.part} (${cur.partBalls} b)` });
-        cur.part = 0; cur.partBalls = 0;
-        const recent = cur.balls.slice(-30).filter(b => b.wicket).length;
-        if (recent >= 2) derived.push({ at: e.id, type: 'COLLAPSE', text: `${recent + 1} wickets in the last 30 balls — momentum ${cur.bat === 'IND' ? 'West Indies' : 'India'} +` });
-      }
-      if (cur.partBalls === 60 || (cur.part >= 50 && cur.part - total < 50)) derived.push({ at: e.id, type: 'PARTNERSHIP', text: `${cur.part}-run stand (${cur.partBalls} b)` });
-      const last30 = cur.balls.slice(-30); const r30 = last30.reduce((a, b) => a + b.runs + b.extras, 0);
-      if (last30.length === 30 && e.ball === 6) {
-        const rr30 = r30 / 5, rr = cur.runs / Math.max(1, cur.legal / 6);
-        if (rr30 > rr * 1.4 && rr30 >= 7) derived.push({ at: e.id, type: 'ACCELERATION', text: `Last 5 overs ${r30} runs (RR ${rr30.toFixed(1)}) — momentum ${cur.bat === 'IND' ? 'India' : 'West Indies'} +` });
-      }
-      e.phase = phase; e.impact = impact; e.inn = inns.length; e.batTeam = cur.bat;
-      cur.balls.push(e);
-    }
-    for (const k in overRuns) { const o = overRuns[k]; if (o.legal === 6 && o.runs === 0 && lines[o.bowler]) { lines[o.bowler].maidens++; derived.push({ at: k, type: 'MAIDEN', text: `Maiden by ${players.find(p => p.id === o.bowler)?.name}` }); } }
-    const actual = Object.fromEntries(players.map(p => [p.id, { line: lines[p.id], fp: fantasyPoints(lines[p.id], cfg, p.role) }]));
-    return { inns, actual, derived, events };
-  }
-
   // =====================================================================
   // PURE GL ENGINE — venue-based, ceiling-driven, differential C/VC.
   // Deterministic: every candidate start is a named construction, never random.
@@ -605,32 +345,43 @@ const Engine = (() => {
   const sdev = a => { const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2)) * a.length / Math.max(1, a.length - 1)); };
 
   function venueIndex(seed) {
-    const ms = seed.venue.odiMatches; const n = ms.length;
-    const i1 = ms.map(m => m.inn1Runs), w = ms.flatMap(m => [m.inn1Wkts, m.inn2Wkts]);
+    const v = seed.venue || {}, fmt = seed.match?.format || 'ODI';
+    const ms = (v.formatMatches || v.odiMatches || []).filter(m => m.inn1Runs != null); const n = ms.length;
     const conf = Math.min(1, n / 10);
-    const med = a => { const s = a.slice().sort((x, y) => x - y); return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; };
-    const cv = sdev(i1) / mean(i1);
+    const ID = `INSUFFICIENT DATA (${n} ${fmt} matches)`;
+    const med = a => { const s = a.slice().sort((x, y) => x - y); return !s.length ? null : s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; };
+    // recency weights: last 5 = 50%, 6–10 = 30%, older = 20% (spec §4)
+    const sorted = ms.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    const rw = i => (i < 5 ? 0.5 / Math.min(5, n) : i < 10 ? 0.3 / Math.min(5, n - 5) : 0.2 / Math.max(1, n - 10));
+    const wsum = sorted.reduce((a, _, i) => a + rw(i), 0);
+    const recencyFirst = n ? sorted.reduce((a, m, i) => a + m.inn1Runs * rw(i), 0) / wsum : null;
+    const i1 = ms.map(m => m.inn1Runs), w = ms.flatMap(m => [m.inn1Wkts, m.inn2Wkts]).filter(x => x != null);
+    const cv = n >= 2 ? sdev(i1) / mean(i1) : null;
+    const bf = ms.filter(m => m.winnerBattedFirst != null);
+    const bfWin = bf.length ? bf.filter(m => m.winnerBattedFirst).length / bf.length : null;
+    const F = fmtOf(seed);
     const idx = {
-      'Venue Batting Index': { v: null, note: 'INSUFFICIENT DATA (2 ODIs: 104 and 390)' },
-      'Venue Bowling Index': { v: seed.venue.seamerAvg.value, note: `Seamer average ${seed.venue.seamerAvg.value} (3rd best in India, limited data)` },
-      'Venue Pace Index': { v: 1.08, note: 'Pace wicket multiplier 1.08 derived from seamer average' },
-      'Venue Spin Index': { v: null, note: 'INSUFFICIENT DATA (spin 4-fer in 2018 is a single match)' },
-      'Venue Powerplay Index': { v: null, note: 'INSUFFICIENT DATA' },
-      'Venue Middle-Overs Index': { v: null, note: 'INSUFFICIENT DATA' },
-      'Venue Death-Overs Index': { v: null, note: 'INSUFFICIENT DATA' },
-      'Venue Chasing Index': { v: 0.5, note: 'Chasing side won 1 of 2 — INSUFFICIENT DATA; dew reported to favour chasing' },
-      'Venue Batting-First Index': { v: 0.5, note: 'Batting-first side won 1 of 2 — INSUFFICIENT DATA' },
-      'Venue Boundary Index': { v: null, note: 'INSUFFICIENT DATA (boundary counts / dimensions unavailable)' },
-      'Venue Wicket Index': { v: +mean(w).toFixed(1), note: `Avg ${mean(w).toFixed(1)} wkts/innings (n=4 innings), SD ${sdev(w).toFixed(1)}` },
-      'Venue Variance Index': { v: +cv.toFixed(2), note: `CV of 1st-innings totals ${cv.toFixed(2)} → HIGH, but sample confidence only ${(conf * 100).toFixed(0)}%` },
+      'Venue Batting Index': n >= 3 ? { v: +(recencyFirst / (F.hi + F.lo) * 2).toFixed(2), note: `Recency-weighted 1st inns ${recencyFirst.toFixed(0)} vs format par ${(F.hi + F.lo) / 2}` } : { v: null, note: ID },
+      'Venue Bowling Index': v.seamerAvg?.value ? { v: v.seamerAvg.value, note: `Seamer average ${v.seamerAvg.value} (limited data)` } : { v: null, note: ID },
+      'Venue Pace Index': { v: v.seamerAvg?.value || v.paceAssist || v.pitchType === 'PACE_ASSIST' ? (v.pitchType === 'PACE_ASSIST' ? 1.1 : v.seamerAvg ? 1.08 : 1.05) : null, note: v.paceAssist || v.seamerAvg || v.pitchType === 'PACE_ASSIST' ? 'From pitch report / seamer record' : ID },
+      'Venue Spin Index': { v: v.spinAssist || v.pitchType === 'SPIN_ASSIST' ? 1.1 : null, note: v.spinAssist || v.pitchType === 'SPIN_ASSIST' ? 'Pitch report: spin assistance' : ID },
+      'Venue Powerplay Index': { v: null, note: ID + ' — phase splits unavailable' },
+      'Venue Middle-Overs Index': { v: null, note: ID + ' — phase splits unavailable' },
+      'Venue Death-Overs Index': { v: null, note: ID + ' — phase splits unavailable' },
+      'Venue Chasing Index': { v: bfWin == null ? null : +(1 - bfWin).toFixed(2), note: bf.length ? `Chasing side won ${bf.filter(m => !m.winnerBattedFirst).length}/${bf.length}${bf.length < 5 ? ' — small sample' : ''}${v.dewExpected ? '; dew expected' : ''}` : ID },
+      'Venue Batting-First Index': { v: bfWin == null ? null : +bfWin.toFixed(2), note: bf.length ? `Batting-first side won ${bf.filter(m => m.winnerBattedFirst).length}/${bf.length}` : ID },
+      'Venue Boundary Index': { v: null, note: v.boundaries?.value ? `Boundary size: ${v.boundaries.value}` : ID },
+      'Venue Wicket Index': w.length ? { v: +mean(w).toFixed(1), note: `Avg ${mean(w).toFixed(1)} wkts/innings (n=${w.length} innings), SD ${sdev(w).toFixed(1)}` } : { v: null, note: ID },
+      'Venue Variance Index': cv != null ? { v: +cv.toFixed(2), note: `CV of 1st-innings totals ${cv.toFixed(2)} → ${cv > 0.2 ? 'HIGH' : 'LOW'}; sample confidence ${(conf * 100).toFixed(0)}%` } : { v: null, note: ID },
     };
+    const hiCv = F === FMT.ODI ? 0.2 : 0.15;
     const variance = {
-      avgFirst: mean(i1), medianFirst: med(i1), sdFirst: sdev(i1), highest: 390, lowest: 73, avgWkts: mean(w), sdWkts: sdev(w), ppVariance: null, deathVariance: null, cv, conf,
-      score: +(Math.min(1, cv) * 100 * conf).toFixed(0),
-      strategy: cv > 0.35 ? 'High variance (low confidence) → differentiation weight +2, role-security weight −2' : 'Low variance → role-security weighting',
+      avgFirst: n ? mean(i1) : null, medianFirst: med(i1), sdFirst: n >= 2 ? sdev(i1) : null, highest: n ? Math.max(...i1) : null, lowest: n ? Math.min(...ms.flatMap(m => [m.inn1Runs, m.inn2Runs]).filter(x => x != null)) : null,
+      avgWkts: w.length ? mean(w) : null, sdWkts: w.length >= 2 ? sdev(w) : null, recencyFirst, cv, conf,
+      score: cv == null ? 0 : +(Math.min(1, cv / (hiCv * 2)) * 100 * conf).toFixed(0),
+      strategy: cv == null ? 'No venue sample → neutral strategy weights' : cv > hiCv ? `High variance (confidence ${(conf * 100).toFixed(0)}%) → differentiation weight up, role-security weight down` : 'Low variance → role-security weighting up',
     };
-    // variance changes the construction strategy, scaled by sample confidence
-    const shift = cv > 0.35 ? Math.round(10 * conf) : -Math.round(10 * conf);
+    const shift = cv == null ? 0 : cv > hiCv ? Math.round(10 * conf) : -Math.round(10 * conf);
     return { idx, variance, n, conf, shift };
   }
 
@@ -650,7 +401,9 @@ const Engine = (() => {
       const scriptRatio = Object.fromEntries(keys.map(k => [k, s.byScript[k] != null ? s.byScript[k] / Math.max(1, s.mean) : 1]));
       const bestScript = keys.slice().sort((a, b) => scriptRatio[b] - scriptRatio[a])[0];
       const scriptFit = clamp((keys.reduce((a, k) => a + s.scriptProb[k] * scriptRatio[k], 0) / Math.max(0.01, keys.reduce((a, k) => a + s.scriptProb[k], 0)) - 0.8) / 0.6 * 100, 0, 100);
-      const popularity = nMean(s.mean); // MODEL proxy — no ownership data
+      // real ownership from the uploaded screenshot when available, otherwise a projection-rank proxy (labelled MODEL)
+      const ownVals = players.map(x => x.ownership).filter(x => typeof x === 'number');
+      const popularity = typeof p.ownership === 'number' && ownVals.length >= players.length / 2 ? clamp(p.ownership, 0, 100) : nMean(s.mean);
       const differential = clamp(0.3 * nP90(s.p90) + 0.15 * nMean(s.mean) + 0.15 * role + 0.15 * venue + 0.15 * scriptFit - 0.3 * popularity + 30, 0, 100);
       const variance = nSd(s.sd);
       const glValue = (nP90(s.p90) / 100 + 0.05) * (venue / 100) * (0.5 + role / 200) * (0.6 + scriptFit / 250) * (0.7 + differential / 333);
@@ -659,7 +412,7 @@ const Engine = (() => {
       else if (differential >= 55 && s.p90 >= 70) cls = 'DIFFERENTIAL';
       else if (variance >= 55 || s.p95 / Math.max(1, s.median) >= 2.6) cls = 'PUNT';
       else cls = 'DIFFERENTIAL';
-      return { id: p.id, venue, venueSample: ve.length ? ve[0].sample : 0, opportunity, batOpp, bowlOpp, role, scriptRatio, bestScript, scriptFit, popularity, differential, variance, glValue, cls,
+      return { id: p.id, ownership: typeof p.ownership === 'number' ? p.ownership : null, venue, venueSample: ve.length ? ve[0].sample : 0, opportunity, batOpp, bowlOpp, role, scriptRatio, bestScript, scriptFit, popularity, differential, variance, glValue, cls,
         toss: tossDelta[p.id] || 0, exp: { balls: st.balls, runs: st.runs, fours: st.fours, sixes: st.sixes, overs: st.bBalls / 6, wkts: st.wkts, dots: st.dots, catches: st.catches, pW3: st.w3, p50: st.r50, p100: st.r100, pBat: st.batted } };
     });
   }
@@ -708,15 +461,16 @@ const Engine = (() => {
 
   function optimiseGL(players, sim, summ, gp, cfg, cons, W, vShift) {
     const N = players.length, n = sim.n;
+    const codes = [...new Set(players.map(p => p.team))];
     const w = { ...W }; w.differentiation += vShift; w.role -= vShift; // venue variance changes strategy
     const Wsum = Object.values(w).reduce((a, b) => a + b, 0);
     const creditsKnown = players.every(p => typeof p.credit === 'number');
     const feasible = S => {
       if (S.length !== cons.players || new Set(S).size !== S.length) return false;
-      const rc = { WK: 0, BAT: 0, AR: 0, BOWL: 0 }, tc = { IND: 0, WI: 0 }; let cr = 0;
+      const rc = { WK: 0, BAT: 0, AR: 0, BOWL: 0 }, tc = Object.fromEntries(codes.map(t => [t, 0])); let cr = 0;
       for (const j of S) { rc[players[j].role]++; tc[players[j].team]++; cr += players[j].credit || 0; }
       for (const r in cons.roles) if (rc[r] < cons.roles[r][0] || rc[r] > cons.roles[r][1]) return false;
-      if (tc.IND > cons.maxFromTeam || tc.WI > cons.maxFromTeam || tc.IND < 1 || tc.WI < 1) return false;
+      if (codes.some(t => tc[t] > cons.maxFromTeam || tc[t] < 1)) return false;
       if (creditsKnown && cr > cons.credits + 1e-9) return false;
       return true;
     };
@@ -786,6 +540,6 @@ const Engine = (() => {
     return { ok: true, ...top, S: top.S, start: top.label, candidates: evals, creditsKnown, credits: top.S.reduce((a, j) => a + (players[j].credit || 0), 0), weights: w, avgRef: avg, alternatives: results.slice(1, 4).map(r => ({ label: r.label, obj: r.obj, p90: r.p90, players: r.S.map(j => players[j].id) })), uniqueVsAvg: top.S.filter(j => !avgTeam.includes(j)).length };
   }
 
-  return { GL_WEIGHTS, venueIndex, glPlayers, cvcCombos, optimiseGL, teamTotals, riskBand, corrOf, MODEL_VERSION, DEFAULT_WEIGHTS, DEFAULT_OBJECTIVE, DEFAULT_RECENCY, BAT_PRIOR, BOWL_PRIOR, SCRIPTS, xiStatus, buildPlayers, conditions, simulate, summarize, scorePlayers, captainScores, optimise, confidence, lockChecks, parseCommentary, liveState, fantasyPoints, emptyLine, mean, pct };
+  return { GL_WEIGHTS, FMT, venueIndex, glPlayers, cvcCombos, optimiseGL, teamTotals, riskBand, corrOf, MODEL_VERSION, SCRIPTS, xiStatus, buildPlayers, conditions, simulate, summarize, fantasyPoints, emptyLine, mean, pct };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;

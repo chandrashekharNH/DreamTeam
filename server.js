@@ -1,104 +1,164 @@
-// Cricket GL Intelligence — zero-dependency Node server.
-// Serves the SPA, persists runtime state, caches static data and proxies live sources.
+// DreamTeam GL engine — zero-framework Node server.
+// Serves the SPA, reads screenshots and researches matches with Claude, caches weather, versions every data refresh.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const claude = require('./lib/claude');
+const adapter = require('./lib/adapter');
 
 const PORT = process.env.PORT || 5177;
 const ROOT = __dirname;
 const PUB = path.join(ROOT, 'public');
-const SEED = path.join(ROOT, 'data', 'seed.json');
-const STATE = path.join(ROOT, 'data', 'state.json');
-const CRICAPI_KEY = process.env.CRICAPI_KEY || '';   // optional: https://cricketdata.org (free tier)
-const CRICAPI_MATCH_ID = process.env.CRICAPI_MATCH_ID || '';
+const DATA = path.join(ROOT, 'data');
+const DEFAULT_SEED = path.join(DATA, 'seed.json');
+const CURRENT = path.join(DATA, 'current.json');
+const STATE = path.join(DATA, 'state.json');
+const MATCHES = path.join(DATA, 'matches');
 
-const cache = new Map(); // key -> {at, ttl, data}
+const readJSON = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
+const writeJSON = (f, o) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(o, null, 1)); };
+const currentSeed = () => readJSON(CURRENT) || readJSON(DEFAULT_SEED);
+
+// ---------- cache (static data cached, live data refreshed) ----------
+const cache = new Map();
 async function cached(key, ttlMs, fn) {
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < ttlMs) return { ...hit.data, cache: 'hit', cachedAt: new Date(hit.at).toISOString() };
-  try {
-    const data = await fn();
-    cache.set(key, { at: Date.now(), data });
-    return { ...data, cache: 'miss', cachedAt: new Date().toISOString() };
-  } catch (e) {
-    if (hit) return { ...hit.data, cache: 'stale', error: String(e.message || e), cachedAt: new Date(hit.at).toISOString() };
-    throw e;
+  if (hit && Date.now() - hit.at < ttlMs) return { ...hit.data, cache: 'hit' };
+  try { const data = await fn(); cache.set(key, { at: Date.now(), data }); return { ...data, cache: 'miss' }; }
+  catch (e) { if (hit) return { ...hit.data, cache: 'stale', error: String(e.message || e) }; throw e; }
+}
+
+async function geocode(city) {
+  const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`, { signal: AbortSignal.timeout(8000) });
+  const j = await r.json(); const g = j.results?.[0];
+  return g ? { lat: g.latitude, lon: g.longitude } : null;
+}
+async function weather() {
+  const seed = currentSeed();
+  let { lat, lon, city } = seed.match;
+  if ((lat == null || lon == null) && city) { const g = await geocode(city.split(',')[0]).catch(() => null); if (g) ({ lat, lon } = g); }
+  if (lat == null || lon == null) return { ok: false, status: 'UNAVAILABLE', message: 'Venue location unknown — weather not fetched.' };
+  return cached(`weather:${lat},${lon}`, 10 * 60 * 1000, async () => {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      `&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,cloud_cover,wind_speed_10m,dew_point_2m` +
+      `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover,precipitation&timezone=auto&forecast_days=3`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('Open-Meteo HTTP ' + r.status);
+    return { ok: true, source: 'open_meteo', data: await r.json(), fetchedAt: new Date().toISOString() };
+  });
+}
+
+// ---------- research job (one at a time) ----------
+let job = { state: 'idle', log: [], startedAt: null, finishedAt: null, error: null, kind: null };
+function startJob(kind, input) {
+  if (job.state === 'running') return false;
+  job = { state: 'running', log: [], startedAt: new Date().toISOString(), finishedAt: null, error: null, kind };
+  const log = t => job.log.push({ t: new Date().toISOString(), msg: t });
+  (async () => {
+    try {
+      log(kind === 'refresh' ? 'Refreshing latest toss, Playing XI, pitch and venue data…' : 'Researching match with Claude + web search…');
+      const research = await claude.research(input, log);
+      log('Building the model inputs…');
+      const seed = adapter.build(research, input);
+      seed.match.matchInput = input;
+      const prev = readJSON(CURRENT);
+      seed.changes = prev && prev.match?.id === seed.match.id ? diff(prev, seed) : [];
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      writeJSON(path.join(MATCHES, seed.match.id, `${stamp}.json`), seed);
+      writeJSON(CURRENT, seed);
+      // new match → clear per-match user overrides
+      const st = readJSON(STATE, {});
+      if (st.matchId !== seed.match.id) writeJSON(STATE, { matchId: seed.match.id });
+      log(`Done — ${seed.players.length} players, toss: ${seed.toss.winner ? seed.toss.winner + ' ' + seed.toss.decision : 'pending'}, XI: ${seed.officialXI ? 'announced' : 'probable'}.`);
+      job.state = 'done';
+    } catch (e) {
+      job.state = 'error'; job.error = String(e.message || e); log('Error: ' + job.error);
+    } finally { job.finishedAt = new Date().toISOString(); }
+  })();
+  return true;
+}
+function diff(a, b) {
+  const out = [];
+  const t = s => s.toss?.winner ? `${s.toss.winner} won, chose to ${s.toss.decision}` : 'pending';
+  if (t(a) !== t(b)) out.push(`Toss: ${t(a)} → ${t(b)}`);
+  const xi = s => (s.teams || []).map(k => (s.officialXI?.[k] || s.xiReports?.[0]?.[k] || []).slice().sort().join(',')).join('|');
+  if (xi(a) !== xi(b)) {
+    const names = s => new Set(Object.values(s.officialXI || s.xiReports?.[0] || {}).filter(Array.isArray).flat());
+    const A = names(a), B = names(b);
+    const inn = [...B].filter(x => !A.has(x)), out_ = [...A].filter(x => !B.has(x));
+    out.push(`Playing XI changed: +${inn.join(', ') || '—'} / −${out_.join(', ') || '—'}`);
   }
+  if (!!a.officialXI !== !!b.officialXI) out.push(`XI status: ${a.officialXI ? 'announced' : 'probable'} → ${b.officialXI ? 'announced' : 'probable'}`);
+  if ((a.venue?.pitchText?.[0]?.text || '') !== (b.venue?.pitchText?.[0]?.text || '')) out.push('Pitch report updated');
+  return out;
 }
 
-function readState() {
-  try { return JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch { return {}; }
-}
-function writeState(s) { fs.writeFileSync(STATE, JSON.stringify(s, null, 2)); }
-
+// ---------- http ----------
 function send(res, code, body, type = 'application/json') {
   res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
-
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
-
-async function weather() {
-  const seed = JSON.parse(fs.readFileSync(SEED, 'utf8'));
-  const { lat, lon } = seed.match;
-  // Open-Meteo: free, keyless, permitted for non-commercial use. Cached 10 minutes to respect limits.
-  return cached('weather', 10 * 60 * 1000, async () => {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-      `&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,cloud_cover,wind_speed_10m,dew_point_2m` +
-      `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover,precipitation` +
-      `&timezone=Asia%2FKolkata&forecast_days=2`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!r.ok) throw new Error('Open-Meteo HTTP ' + r.status);
-    const j = await r.json();
-    return { ok: true, source: 'open_meteo', url: 'https://open-meteo.com/', data: j, fetchedAt: new Date().toISOString() };
-  });
-}
-
-async function live() {
-  if (!CRICAPI_KEY || !CRICAPI_MATCH_ID) {
-    return { ok: false, status: 'NOT_CONFIGURED', message: 'Live score provider not configured. Set CRICAPI_KEY and CRICAPI_MATCH_ID (cricketdata.org) or paste commentary in the Commentary tab.' };
-  }
-  // Poll no faster than every 60s to stay inside the free-tier rate limit.
-  return cached('live', 60 * 1000, async () => {
-    const url = `https://api.cricapi.com/v1/match_scorecard?apikey=${CRICAPI_KEY}&id=${CRICAPI_MATCH_ID}`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!r.ok) throw new Error('CricAPI HTTP ' + r.status);
-    const j = await r.json();
-    if (j.status !== 'success') throw new Error('CricAPI: ' + (j.reason || j.status));
-    return { ok: true, source: 'cricapi', data: j.data, fetchedAt: new Date().toISOString() };
-  });
-}
-
-function body(req) {
+function body(req, limit = 30e6) {
   return new Promise((resolve, reject) => {
-    let b = ''; req.on('data', c => { b += c; if (b.length > 5e6) req.destroy(); });
+    let b = ''; req.on('data', c => { b += c; if (b.length > limit) { reject(new Error('Upload too large (max ~20 MB)')); req.destroy(); } });
     req.on('end', () => { try { resolve(b ? JSON.parse(b) : {}); } catch (e) { reject(e); } });
   });
 }
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.md': 'text/markdown; charset=utf-8' };
+const NEED_KEY = { ok: false, status: 'NOT_CONFIGURED', message: 'Claude is not configured. Start the server with ANTHROPIC_API_KEY=… npm start to enable screenshot reading and live data refresh.' };
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   try {
-    if (url.pathname === '/api/seed') return send(res, 200, fs.readFileSync(SEED, 'utf8'));
-    if (url.pathname === '/api/state' && req.method === 'GET') return send(res, 200, readState());
+    if (url.pathname === '/api/status') return send(res, 200, { claude: claude.configured(), model: claude.MODEL, match: currentSeed().match, isDefault: !fs.existsSync(CURRENT), job: { state: job.state, kind: job.kind } });
+    if (url.pathname === '/api/seed') return send(res, 200, currentSeed());
+    if (url.pathname === '/api/state' && req.method === 'GET') return send(res, 200, readJSON(STATE, {}));
     if (url.pathname === '/api/state' && req.method === 'POST') {
-      const patch = await body(req);
-      const s = { ...readState(), ...patch, savedAt: new Date().toISOString() };
-      writeState(s); return send(res, 200, { ok: true, savedAt: s.savedAt });
+      const patch = await body(req, 1e6); const s = { ...readJSON(STATE, {}), ...patch, savedAt: new Date().toISOString() };
+      writeJSON(STATE, s); return send(res, 200, { ok: true });
     }
     if (url.pathname === '/api/weather') {
       try { return send(res, 200, await weather()); }
-      catch (e) { return send(res, 200, { ok: false, status: 'UNAVAILABLE', message: 'Source A (Open-Meteo) unavailable: ' + e.message + '. Data temporarily unavailable.' }); }
+      catch (e) { return send(res, 200, { ok: false, status: 'UNAVAILABLE', message: 'Open-Meteo unavailable: ' + e.message }); }
     }
-    if (url.pathname === '/api/live') {
-      try { return send(res, 200, await live()); }
-      catch (e) { return send(res, 200, { ok: false, status: 'UNAVAILABLE', message: 'Live provider unavailable: ' + e.message }); }
+    if (url.pathname === '/api/extract' && req.method === 'POST') {
+      if (!claude.configured()) return send(res, 200, NEED_KEY);
+      const { images } = await body(req);
+      if (!Array.isArray(images) || !images.length || images.length > 5) return send(res, 400, { ok: false, message: 'Send 1–5 images.' });
+      const bad = images.find(i => !/^image\/(png|jpeg|webp|gif)$/.test(i.mediaType));
+      if (bad) return send(res, 400, { ok: false, message: 'Images must be PNG, JPEG, WEBP or GIF.' });
+      const data = await claude.extractMatch(images);
+      data._uploadedAt = new Date().toISOString();
+      writeJSON(path.join(DATA, 'last-extract.json'), data);
+      return send(res, 200, { ok: true, data });
     }
-    let p = path.normalize(url.pathname === '/' ? '/index.html' : url.pathname);
-    const file = path.join(PUB, p);
+    if (url.pathname === '/api/analyse' && req.method === 'POST') {
+      if (!claude.configured()) return send(res, 200, NEED_KEY);
+      const { input } = await body(req, 1e6);
+      if (!input || !input.teamA || !input.teamB) return send(res, 400, { ok: false, message: 'Team names are required.' });
+      return send(res, 200, { ok: startJob('analyse', input), job });
+    }
+    if (url.pathname === '/api/refresh' && req.method === 'POST') {
+      if (!claude.configured()) return send(res, 200, NEED_KEY);
+      const input = currentSeed().match.matchInput;
+      if (!input) return send(res, 400, { ok: false, message: 'No match input stored — upload a screenshot first.' });
+      return send(res, 200, { ok: startJob('refresh', input), job });
+    }
+    if (url.pathname === '/api/job') return send(res, 200, job);
+    if (url.pathname === '/api/versions') {
+      const id = currentSeed().match.id; const dir = path.join(MATCHES, id || '_');
+      const files = fs.existsSync(dir) ? fs.readdirSync(dir).sort().reverse() : [];
+      return send(res, 200, files.map(f => { const s = readJSON(path.join(dir, f)); return { file: f, at: s.meta?.seedCollectedAt, toss: s.toss?.winner ? `${s.toss.winner} ${s.toss.decision}` : 'pending', xi: s.officialXI ? 'announced' : 'probable', changes: s.changes || [] }; }));
+    }
+    if (url.pathname === '/api/reset-default' && req.method === 'POST') { if (fs.existsSync(CURRENT)) fs.unlinkSync(CURRENT); writeJSON(STATE, {}); return send(res, 200, { ok: true }); }
+    if (url.pathname.startsWith('/docs/')) {
+      const f = path.join(ROOT, path.normalize(url.pathname));
+      if (f.startsWith(path.join(ROOT, 'docs')) && fs.existsSync(f)) return send(res, 200, fs.readFileSync(f), MIME[path.extname(f)] || 'text/plain');
+    }
+    const file = path.join(PUB, path.normalize(url.pathname === '/' ? '/index.html' : url.pathname));
     if (!file.startsWith(PUB) || !fs.existsSync(file)) return send(res, 404, 'Not found', 'text/plain');
     return send(res, 200, fs.readFileSync(file), MIME[path.extname(file)] || 'application/octet-stream');
   } catch (e) {
-    send(res, 500, { error: String(e.message || e) });
+    send(res, 500, { ok: false, message: String(e.message || e) });
   }
-}).listen(PORT, () => console.log(`Cricket GL Intelligence running at http://localhost:${PORT}`));
+}).listen(PORT, () => console.log(`DreamTeam GL engine at http://localhost:${PORT} · Claude ${claude.configured() ? 'configured (' + claude.MODEL + ')' : 'NOT configured — set ANTHROPIC_API_KEY'}`));

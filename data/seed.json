@@ -22,7 +22,26 @@
    "espn_preview",
    "yahoo_preview",
    "mykhel_toss"
-  ]
+  ],
+  "format": "ODI",
+  "matchInput": {
+   "platform": "unknown",
+   "teamA": "India",
+   "teamB": "West Indies",
+   "teamAShort": "IND",
+   "teamBShort": "WI",
+   "format": "ODI",
+   "matchLabel": "1st ODI",
+   "series": "West Indies tour of India 2026-27",
+   "date": "2026-09-27",
+   "startTime": "14:00 IST",
+   "venue": "Greenfield International Stadium, Thiruvananthapuram",
+   "city": "Thiruvananthapuram",
+   "tossText": null,
+   "lineupsAnnounced": true,
+   "players": [],
+   "notes": null
+  }
  },
  "sources": {
   "espn_preview": {
@@ -916,7 +935,44 @@
   "boundaries": {
    "value": null,
    "label": "DATA NOT AVAILABLE"
-  }
+  },
+  "pitchType": "BALANCED",
+  "paceAssist": true,
+  "dewExpected": true,
+  "formatMatches": [
+   {
+    "date": "2018-11-01",
+    "teams": "India v West Indies",
+    "batFirst": "WI",
+    "inn1": "WI 104 all out",
+    "inn1Runs": 104,
+    "inn1Wkts": 10,
+    "inn2": "IND 105/1 (14.5 ov)",
+    "inn2Runs": 105,
+    "inn2Wkts": 1,
+    "result": "India won by 9 wickets (chasing)",
+    "winnerBattedFirst": false,
+    "notes": "Low-scoring seam-bowling affair; Jadeja 4 wickets; Rohit–Kohli 99-run stand.",
+    "source": "venue_search",
+    "dayNight": "Day"
+   },
+   {
+    "date": "2023-01-15",
+    "teams": "India v Sri Lanka",
+    "batFirst": "IND",
+    "inn1": "IND 390/5",
+    "inn1Runs": 390,
+    "inn1Wkts": 5,
+    "inn2": "SL 73 all out",
+    "inn2Runs": 73,
+    "inn2Wkts": 10,
+    "result": "India won by 317 runs (batting first)",
+    "winnerBattedFirst": true,
+    "notes": "Kohli 166* (110b); Siraj 4/32.",
+    "source": "yahoo_pitch",
+    "dayNight": "Day/Night"
+   }
+  ]
  },
  "weatherNews": [
   {
@@ -1344,7 +1400,9 @@
       "resolved": 25,
       "rule": "ODI-specific table (CricJosh) says 25; the 30 figure appears in a generic (T20-oriented) guide"
      }
-    ]
+    ],
+    "format": "ODI",
+    "status": "PROVISIONAL — official page down (HTTP 502) when fetched; values from third-party reports"
    },
    "constraints": {
     "players": 11,
@@ -1544,7 +1602,9 @@
     "haulMode": "highest",
     "fieldStatus": {
      "_all": "VERIFIED — official My11Circle points page (fetched 13:44 IST)"
-    }
+    },
+    "format": "ODI",
+    "status": "VERIFIED — official my11circle.com points page (27 Sep 2026)"
    },
    "constraints": {
     "players": 11,
@@ -1572,5 +1632,13 @@
     "note": "100 credits and max-10-per-team from search summary; role ranges are the common My11Circle ODI ranges — verify in-app."
    }
   }
+ },
+ "teams": [
+  "IND",
+  "WI"
+ ],
+ "teamNames": {
+  "IND": "India",
+  "WI": "West Indies"
  }
 }

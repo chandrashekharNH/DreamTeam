@@ -1,0 +1,131 @@
+{
+ "name": "Dream11",
+ "format": "T20",
+ "version": "Dream11 T20 (user-provided table)",
+ "source": "user_points_doc",
+ "status": "USER-PROVIDED — official dream11.com page was unreachable when saved",
+ "playingXI": 4,
+ "run": 1,
+ "four": 4,
+ "six": 6,
+ "milestones": [
+  [
+   30,
+   4
+  ],
+  [
+   50,
+   8
+  ],
+  [
+   100,
+   16
+  ]
+ ],
+ "milestoneMode": "stack-below-100",
+ "duck": -2,
+ "srMinRuns": 9999,
+ "srMinBalls": 10,
+ "srBands": [
+  [
+   0,
+   50,
+   -6
+  ],
+  [
+   50,
+   60,
+   -4
+  ],
+  [
+   60,
+   70,
+   -2
+  ],
+  [
+   70,
+   130,
+   0
+  ],
+  [
+   130,
+   150,
+   2
+  ],
+  [
+   150,
+   170,
+   4
+  ],
+  [
+   170,
+   9999,
+   6
+  ]
+ ],
+ "dotsPerPoint": 0,
+ "dotPoint": 0,
+ "wicket": 25,
+ "lbwBowled": 8,
+ "maiden": 12,
+ "hauls": [
+  [
+   3,
+   4
+  ],
+  [
+   4,
+   8
+  ],
+  [
+   5,
+   12
+  ]
+ ],
+ "haulMode": "cumulative",
+ "econMinOvers": 2,
+ "econBands": [
+  [
+   0,
+   5,
+   6
+  ],
+  [
+   5,
+   6,
+   4
+  ],
+  [
+   6,
+   7,
+   2
+  ],
+  [
+   7,
+   10,
+   0
+  ],
+  [
+   10,
+   11,
+   -2
+  ],
+  [
+   11,
+   12,
+   -4
+  ],
+  [
+   12,
+   99,
+   -6
+  ]
+ ],
+ "catch": 8,
+ "threeCatchBonus": 4,
+ "stumping": 12,
+ "runoutDirect": 12,
+ "runoutIndirect": 6,
+ "captain": 2,
+ "viceCaptain": 1.5
+}

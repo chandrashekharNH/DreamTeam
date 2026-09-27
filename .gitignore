@@ -1,6 +1,10 @@
 node_modules/
 data/state.json
+data/current.json
+data/matches/
+data/last-extract.json
 server.log
 chrome.err
 *.bak
 .DS_Store
+.env

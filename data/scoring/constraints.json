@@ -1,0 +1,50 @@
+{
+ "dream11": {
+  "players": 11,
+  "credits": 100,
+  "maxFromTeam": 10,
+  "roles": {
+   "WK": [
+    1,
+    8
+   ],
+   "BAT": [
+    1,
+    8
+   ],
+   "AR": [
+    1,
+    8
+   ],
+   "BOWL": [
+    1,
+    8
+   ]
+  },
+  "note": "Dream11: 100 credits, max 10 per side, 1\u20138 per role"
+ },
+ "my11": {
+  "players": 11,
+  "credits": 100,
+  "maxFromTeam": 10,
+  "roles": {
+   "WK": [
+    1,
+    4
+   ],
+   "BAT": [
+    3,
+    6
+   ],
+   "AR": [
+    1,
+    4
+   ],
+   "BOWL": [
+    3,
+    6
+   ]
+  },
+  "note": "My11Circle: 100 credits, max 10 per side; role ranges are the common ones \u2014 verify in-app"
+ }
+}

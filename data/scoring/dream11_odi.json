@@ -1,0 +1,185 @@
+{
+ "name": "Dream11",
+ "version": "Dream11 ODI — PROVISIONAL (official page down: HTTP 502 at 14:10 IST)",
+ "source": "d11_reports",
+ "fetchedAt": "2026-09-27T14:12:00+05:30",
+ "playingXI": 4,
+ "run": 1,
+ "four": 4,
+ "six": 6,
+ "milestones": [
+  [
+   25,
+   4
+  ],
+  [
+   50,
+   8
+  ],
+  [
+   75,
+   12
+  ],
+  [
+   100,
+   16
+  ]
+ ],
+ "milestoneMode": "highest",
+ "duck": -3,
+ "srMinRuns": 9999,
+ "srMinBalls": 20,
+ "srBands": [
+  [
+   0,
+   30,
+   -6
+  ],
+  [
+   30,
+   40,
+   -4
+  ],
+  [
+   40,
+   50,
+   -2
+  ],
+  [
+   50,
+   100,
+   0
+  ],
+  [
+   100,
+   120,
+   2
+  ],
+  [
+   120,
+   140,
+   4
+  ],
+  [
+   140,
+   9999,
+   6
+  ]
+ ],
+ "dotsPerPoint": 0,
+ "dotPoint": 0,
+ "wicket": 25,
+ "lbwBowled": 8,
+ "maiden": 4,
+ "hauls": [
+  [
+   4,
+   4
+  ],
+  [
+   5,
+   8
+  ],
+  [
+   6,
+   12
+  ]
+ ],
+ "haulMode": "highest",
+ "econMinOvers": 5,
+ "econBands": [
+  [
+   0,
+   2.5,
+   4
+  ],
+  [
+   2.5,
+   3.5,
+   2
+  ],
+  [
+   3.5,
+   4.5,
+   1
+  ],
+  [
+   4.5,
+   7,
+   0
+  ],
+  [
+   7,
+   8,
+   -2
+  ],
+  [
+   8,
+   9,
+   -4
+  ],
+  [
+   9,
+   99,
+   -6
+  ]
+ ],
+ "catch": 8,
+ "threeCatchBonus": 4,
+ "stumping": 12,
+ "runoutDirect": 12,
+ "runoutIndirect": 6,
+ "captain": 2,
+ "viceCaptain": 1.5,
+ "fieldStatus": {
+  "run": "Reported by all sources",
+  "four": "+4 per 'new system' reports (knowthegame/ddream11); legacy ODI was +1 — CONFLICT",
+  "six": "+6 per 'new system' reports; legacy ODI was +2 — CONFLICT",
+  "milestones": "25-run bonus reported for new system; 75/100 values assumed — UNVERIFIED",
+  "duck": "-3 legacy ODI value (T20 is -2) — UNVERIFIED",
+  "dots": "No confirmed ODI dot-ball rule for Dream11 → set to 0 — UNVERIFIED",
+  "wicket": "25 (CricJosh ODI table, search summary) — consistent across sources",
+  "lbwBowled": "+8 — consistent across sources",
+  "maiden": "+4 ODI (CricJosh ODI table)",
+  "hauls": "4w +4 / 5w +8 legacy ODI — UNVERIFIED",
+  "econ": "Legacy ODI bands, min 5 overs — UNVERIFIED",
+  "sr": "Legacy ODI bands, min 20 balls — UNVERIFIED",
+  "fielding": "Catch 8 / stumping 12 / run-out 12·6 — consistent across sources",
+  "cvc": "C ×2, VC ×1.5 — consistent",
+  "playingXI": "+4 announced lineup — consistent"
+ },
+ "conflicts": [
+  {
+   "field": "four/six bonus",
+   "values": [
+    {
+     "value": "+4/+6",
+     "source": "d11_reports"
+    },
+    {
+     "value": "+1/+2",
+     "source": "d11_legacy"
+    }
+   ],
+   "resolved": "+4/+6",
+   "rule": "More recent 'new points system' reports preferred; official page unavailable"
+  },
+  {
+   "field": "wicket",
+   "values": [
+    {
+     "value": 25,
+     "source": "d11_legacy"
+    },
+    {
+     "value": 30,
+     "source": "d11_reports"
+    }
+   ],
+   "resolved": 25,
+   "rule": "ODI-specific table (CricJosh) says 25; the 30 figure appears in a generic (T20-oriented) guide"
+  }
+ ],
+ "format": "ODI",
+ "status": "PROVISIONAL — official page down (HTTP 502) when fetched; values from third-party reports"
+}
